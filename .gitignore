@@ -1,0 +1,2 @@
+# すべての .json ファイルを除外設定に追加
+"*.json" | Out-File .gitignore -Append -Encoding ascii
