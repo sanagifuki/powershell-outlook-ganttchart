@@ -72,8 +72,9 @@ $COL_WIDTH_STATUS = 72          # 「ステータス」列の幅
 $COL_WIDTH_TYPE   = 72          # 「期限タイプ」列の幅
 $COL_WIDTH_CAT    = 80          # 「分類」列の幅
 $COL_WIDTH_DATE   = 72          # 「日付」列の幅
-$COL_WIDTH_TIME   = 43          # 「時間」列の幅
-$COL_WIDTH_MEMO   = 250         # 「メモ」列の幅
+$COL_WIDTH_TIME   = 42          # 「時間」列の幅
+$COL_WIDTH_LOG_TIME = 60        # 「作業時間」(ログ)列の幅
+$COL_WIDTH_MEMO   = 400         # 「メモ」列の幅
 $CLR_EMPTY_CELL_BG = "#BDBDBD"     # 空欄セルの背景色（カレンダー同期など）
 $CLR_GRID_LINE = "#b1b1b1"     # セル間の枠線色
 $CLR_BORDER = "#b1b1b1"        # テーブル外枠・ヘッダー枠線色
@@ -147,7 +148,7 @@ function Get-AllData {
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="スケジュール管理システム" Height="600" Width="769" MinWidth="769" MinHeight="600"
-        Background="#F5F5F5" Foreground="#333333" FontFamily="Noto Sans JP, Meiryo, Yu Gothic UI, MS Gothic" FontSize="11"
+        Background="#F5F5F5" Foreground="#333333" FontFamily="Noto Sans JP, Meiryo, Yu Gothic UI" FontSize="11"
         WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <!-- Hide default selection background colors globally to ensure border-only selection -->
@@ -194,7 +195,7 @@ function Get-AllData {
             </Style.Triggers>
         </Style>
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="FontFamily" Value="Noto Sans JP, Meiryo, Yu Gothic UI, MS Gothic"/>
+            <Setter Property="FontFamily" Value="Noto Sans JP, Meiryo, Yu Gothic UI"/>
             <Setter Property="Background" Value="#EAEAEA"/>
             <Setter Property="Foreground" Value="#333333"/>
             <Setter Property="Padding" Value="6,4"/>
@@ -421,6 +422,12 @@ function Get-AllData {
                             </DataGridTextColumn.CellStyle>
                         </DataGridTextColumn>
                         <DataGridTemplateColumn Header="メモ" SortMemberPath="メモ" Width="$COL_WIDTH_MEMO">
+                            <DataGridTemplateColumn.HeaderStyle>
+                                <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                                    <Setter Property="Padding" Value="10,4,6,4"/>
+                                </Style>
+                            </DataGridTemplateColumn.HeaderStyle>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBox Text="{Binding メモ, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" VerticalAlignment="Center" Margin="6,0" TextWrapping="Wrap"/>
@@ -448,7 +455,7 @@ function Get-AllData {
                                 <Style TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="6,0"/></Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Header="作業時間" Binding="{Binding displayTime}" Width="$COL_WIDTH_TIME">
+                        <DataGridTextColumn Header="作業時間" Binding="{Binding displayTime}" Width="$COL_WIDTH_LOG_TIME">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="6,0"/></Style>
                             </DataGridTextColumn.ElementStyle>
@@ -1069,7 +1076,7 @@ function Build-GanttColumns {
         </Grid.ToolTip>
         <TextBlock Text="{Binding [$dStr]}" 
                    HorizontalAlignment="Center" VerticalAlignment="Center" 
-                   FontWeight="Bold" FontSize="11" Foreground="$CLR_SYMBOL_FG"/>
+                   FontWeight="Bold" FontSize="11" Foreground="$CLR_SYMBOL_FG" FontFamily="Yu Gothic"/>
         <!-- Combined Info Mark (Top-Right Blue) -->
         <Polygon Points="7,0 7,7 0,0" Fill="#0078D7" HorizontalAlignment="Right" VerticalAlignment="Top" 
                  Visibility="{Binding [${dStr}_InfoVis]}"/>
