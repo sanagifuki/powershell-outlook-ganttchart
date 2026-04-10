@@ -760,7 +760,7 @@ function Invoke-AddAppointmentForm {
             }
 
             $appt.Save()
-            [System.Windows.MessageBox]::Show("Outlookに予定を追加しました。`n（反映するにはメイン画面の同期ボタンを押してください）", "完了", "OK", "Information")
+            Show-Toast "Outlookに予定を追加しました: $formattedTitle"
             $window.Close()
         } catch {
             [System.Windows.MessageBox]::Show("保存に失敗しました。詳細:`n$($_.Exception.Message)", "エラー", "OK", "Error")
