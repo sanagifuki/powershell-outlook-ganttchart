@@ -222,11 +222,13 @@ function Get-AllData {
         
         <!-- Status Badges -->
         <Style x:Key="BadgeStatus" TargetType="Border">
-            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Padding" Value="4,0"/>
-            <Setter Property="Margin" Value="1,1,0,1"/>
+            <Setter Property="Margin" Value="1,1"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="TextBlock.FontWeight" Value="SemiBold"/>
+            <Setter Property="TextBlock.FontSize" Value="10.5"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding ステータス}" Value="未着手"><Setter Property="Background" Value="$CLR_STA_UNSTARTED_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_STA_UNSTARTED_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding ステータス}" Value="完了"><Setter Property="Background" Value="$CLR_STA_COMPLETED_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_STA_COMPLETED_FG"/></DataTrigger>
@@ -236,11 +238,13 @@ function Get-AllData {
         </Style>
         <!-- Type Badges -->
         <Style x:Key="BadgeType" TargetType="Border">
-            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Padding" Value="4,0"/>
-            <Setter Property="Margin" Value="1,1,0,1"/>
+            <Setter Property="Margin" Value="1,1"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="TextBlock.FontWeight" Value="SemiBold"/>
+            <Setter Property="TextBlock.FontSize" Value="10.5"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding 期限タイプ}" Value="絶対期限"><Setter Property="Background" Value="$CLR_TYP_ABSOLUTE_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_TYP_ABSOLUTE_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding 期限タイプ}" Value="推奨期限"><Setter Property="Background" Value="$CLR_TYP_RECOMMEND_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_TYP_RECOMMEND_FG"/></DataTrigger>
@@ -251,11 +255,13 @@ function Get-AllData {
         </Style>
         <!-- Category Badges -->
         <Style x:Key="BadgeCategory" TargetType="Border">
-            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Padding" Value="4,0"/>
-            <Setter Property="Margin" Value="1,1,0,1"/>
+            <Setter Property="Margin" Value="1,1"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="TextBlock.FontWeight" Value="SemiBold"/>
+            <Setter Property="TextBlock.FontSize" Value="10.5"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding 分類}" Value="重要"><Setter Property="Background" Value="$CLR_CAT_IMPORTANT_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_IMPORTANT_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding 分類}" Value="雑務"><Setter Property="Background" Value="$CLR_CAT_CHORE_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_CHORE_FG"/></DataTrigger>
