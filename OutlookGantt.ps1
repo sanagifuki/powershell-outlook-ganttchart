@@ -11,7 +11,7 @@ $LogsFile = Join-Path $ScriptPath "logs.json"
 # ========================
 # 同期したいメールアドレスを指定します。
 # ※空欄("")にすると、Outlookの既定(メイン)アカウントが同期されます。
-$TARGET_OUTLOOK_EMAIL = "●●●●●●●●●●●●●●●@outlook.jp"
+$TARGET_OUTLOOK_EMAIL = ""
 
 # ========================
 # 汎用関数
@@ -448,14 +448,6 @@ function Get-AllData {
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
                             <Setter Property="Background" Value="#FFFFFF"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding ステータス}" Value="完了">
-                                    <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
-                                    <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
-                                </DataTrigger>
-                            </Style.Triggers>
                         </Style>
                     </DataGrid.RowStyle>
                     <DataGrid.Columns>
@@ -623,11 +615,31 @@ function Build-GanttColumns {
     
     $GridGantt.Columns.Clear()
     
+    $fixedCellStyle = [System.Windows.Markup.XamlReader]::Parse(@"
+<Style TargetType="DataGridCell" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Style.Triggers>
+        <Trigger Property="IsSelected" Value="True">
+            <Setter Property="BorderBrush" Value="$CLR_SELECTED_BORDER"/>
+        </Trigger>
+        <DataTrigger Binding="{Binding ステータス}" Value="完了">
+            <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
+            <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
+        </DataTrigger>
+    </Style.Triggers>
+</Style>
+"@)
+    
     # 1. ステータス
     $col1 = New-Object System.Windows.Controls.DataGridTemplateColumn
     $col1.Header = "ステータス"
     $col1.Width = 76
     $col1.CellTemplate = $Form.Resources["BadgeStatusTemplate"]
+    $col1.CellStyle = $fixedCellStyle
     $GridGantt.Columns.Add($col1)
     
     # 2. 分類
@@ -635,6 +647,7 @@ function Build-GanttColumns {
     $col2.Header = "分類"
     $col2.Width = 76
     $col2.CellTemplate = $Form.Resources["BadgeCategoryTemplate"]
+    $col2.CellStyle = $fixedCellStyle
     $GridGantt.Columns.Add($col2)
     
     # 3. スケジュール名
@@ -642,6 +655,7 @@ function Build-GanttColumns {
     $col3.Header = "スケジュール名"
     $col3.SortMemberPath = "スケジュール名"
     $col3.Width = $COL_WIDTH_TITLE
+    $col3.CellStyle = $fixedCellStyle
     # ヘッダー設定（同期タブと統一）
     $col3HeaderStyle = New-Object System.Windows.Style -ArgumentList ([System.Windows.Controls.Primitives.DataGridColumnHeader])
     $col3HeaderStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BackgroundProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($CLR_TITLE_CELL_BG))))
@@ -740,6 +754,7 @@ function Build-GanttColumns {
     <Setter Property="BorderBrush" Value="Transparent"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Style.Triggers>
+        
         <!-- 枠線描画 -->
         <Trigger Property="IsSelected" Value="True">
             <Setter Property="BorderBrush" Value="$CLR_SELECTED_BORDER"/>
@@ -764,14 +779,6 @@ function Build-GanttColumns {
         </DataTrigger>
         <DataTrigger Binding="{Binding [${dStr}_Bg]}" Value="$CLR_ROW_DISPLAY">
             <Setter Property="Background" Value="$CLR_ROW_DISPLAY"/>
-        </DataTrigger>
-        
-        <!-- 行ステータスの背景色 -->
-        <DataTrigger Binding="{Binding ステータス}" Value="完了">
-            <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
-        </DataTrigger>
-        <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
-            <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
         </DataTrigger>
     </Style.Triggers>
 </Style>
