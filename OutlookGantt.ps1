@@ -96,7 +96,7 @@ $CLR_TYP_REF_BG = "#FFD156"; $CLR_TYP_REF_FG = "#363636" # 参照用
 #    この変数を使用する <DataTrigger> を1行追加する
 $CLR_CAT_IMPORTANT_BG = "#FFCFC9"; $CLR_CAT_IMPORTANT_FG = "#c22e2c" # 重要
 $CLR_CAT_CHORE_BG = "#FFE5A0"; $CLR_CAT_CHORE_FG = "#5f4e2e" # 雑務
-$CLR_CAT_PAY_BG = "#CEEAD6"; $CLR_CAT_PAY_FG = "#5BA176" # 業務
+$CLR_CAT_PAY_BG = "#bee4ca"; $CLR_CAT_PAY_FG = "#166534" # 業務
 $CLR_CAT_PROC_BG = "#BFE1F6"; $CLR_CAT_PROC_FG = "#1A5FAF" # 手続き
 $CLR_CAT_RES_BG = "#E6CFF2"; $CLR_CAT_RES_FG = "#8F6EAF" # 調査
 $CLR_CAT_SKILL_BG = "#FFC8AA"; $CLR_CAT_SKILL_FG = "#874B17" # スキルアップ
@@ -254,6 +254,7 @@ function Get-AllData {
                 <DataTrigger Binding="{Binding 分類}" Value="重要"><Setter Property="Background" Value="$CLR_CAT_IMPORTANT_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_IMPORTANT_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding 分類}" Value="雑務"><Setter Property="Background" Value="$CLR_CAT_CHORE_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_CHORE_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding 分類}" Value="支払い"><Setter Property="Background" Value="$CLR_CAT_PAY_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_PAY_FG"/></DataTrigger>
+                <DataTrigger Binding="{Binding 分類}" Value="業務"><Setter Property="Background" Value="$CLR_CAT_PAY_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_PAY_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding 分類}" Value="手続き"><Setter Property="Background" Value="$CLR_CAT_PROC_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_PROC_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding 分類}" Value="調査"><Setter Property="Background" Value="$CLR_CAT_RES_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_RES_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding 分類}" Value="スキルアップ"><Setter Property="Background" Value="$CLR_CAT_SKILL_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_SKILL_FG"/></DataTrigger>
