@@ -42,13 +42,13 @@ function Format-Memo($m) {
 # ガントチャート - セル背景
 $CLR_GANTT_TODAY_BG = "#FCE5CD"   # 今日の列: 薄い黄色
 $CLR_GANTT_WE_ODD_BG = "#B8C6C9"   # 土日（奇数月）: 薄い緑
-$CLR_GANTT_WE_EVEN_BG = "#CEE1F2"   # 土日（偶数月）: 薄い青
+$CLR_GANTT_WE_EVEN_BG = "#bbd5eb"   # 土日（偶数月）: 薄い青
 $CLR_GANTT_ODD_BG = "#e2e2e2"   # 奇数月（平日）: 薄いグレー
 $CLR_GANTT_EVEN_BG = "Transparent" # 偶数月（平日）: 透過
 
 $CLR_STA_OVERDUE_BG = "#C27BA0"       # 遅延(・): 薄ピンク
 $CLR_STA_OVERDUE_ABS_BG = "#E06666"   # 遅延(＊): 薄赤
-$CLR_GANTT_PAST_BG = "#8E7CC3"    # 過去の日付: 薄紫色
+$CLR_GANTT_PAST_BG = "#a293cc"    # 過去の日付: 薄紫色
 
 # ガントチャート - ヘッダー背景
 $CLR_GANTT_HDR_DEFAULT_BG = "#EAEAEA"   # 通常ヘッダー
@@ -77,7 +77,7 @@ $CLR_SYMBOL_FG = "#333333"   # 記号文字色: 黒
 $CLR_TITLE_CELL_BG = "#bad1e4" # スケジュール名列の背景色: 薄い水色
 
 # ステータス別バッジ色
-$CLR_STA_UNSTARTED_BG = "#E8EAED"; $CLR_STA_UNSTARTED_FG = "#363636" # 未着手
+$CLR_STA_UNSTARTED_BG = "#dddfe2"; $CLR_STA_UNSTARTED_FG = "#363636" # 未着手
 $CLR_STA_COMPLETED_BG = "#1f8d61"; $CLR_STA_COMPLETED_FG = "#dae9d9" # 完了
 $CLR_STA_DISCARDED_BG = "#3D3D3D"; $CLR_STA_DISCARDED_FG = "#ffffff" # 廃棄
 $CLR_STA_DISPLAY_BG = "#FFD156"; $CLR_STA_DISPLAY_FG = "#363636" # 表示
@@ -100,7 +100,7 @@ $CLR_CAT_PAY_BG = "#CEEAD6"; $CLR_CAT_PAY_FG = "#5BA176" # 業務
 $CLR_CAT_PROC_BG = "#BFE1F6"; $CLR_CAT_PROC_FG = "#1A5FAF" # 手続き
 $CLR_CAT_RES_BG = "#E6CFF2"; $CLR_CAT_RES_FG = "#8F6EAF" # 調査
 $CLR_CAT_SKILL_BG = "#FFC8AA"; $CLR_CAT_SKILL_FG = "#874B17" # スキルアップ
-$CLR_CAT_CORP_BG = "#BFE1F6"; $CLR_CAT_CORP_FG = "#1A5FAF" # 会社対応
+$CLR_CAT_CORP_BG = "#a8d8f5"; $CLR_CAT_CORP_FG = "#1A5FAF" # 会社対応
 
 function Get-AllData {
     $tasks = if (Test-Path $TasksFile) { Get-Content $TasksFile -Raw -Encoding UTF8 | ConvertFrom-Json } else { @() }
