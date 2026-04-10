@@ -1,4 +1,4 @@
-﻿Add-Type -AssemblyName PresentationFramework
+Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Windows.Forms
 
@@ -370,6 +370,12 @@ function Get-AllData {
                                         <DataTrigger Binding="{Binding 開始時間}" Value="{x:Null}">
                                             <Setter Property="Background" Value="$CLR_EMPTY_CELL_BG"/>
                                         </DataTrigger>
+                                        <DataTrigger Binding="{Binding ステータス}" Value="完了">
+                                            <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
+                                            <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </DataGridTextColumn.CellStyle>
@@ -389,6 +395,12 @@ function Get-AllData {
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding 終了時間}" Value="{x:Null}">
                                             <Setter Property="Background" Value="$CLR_EMPTY_CELL_BG"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ステータス}" Value="完了">
+                                            <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
+                                            <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
