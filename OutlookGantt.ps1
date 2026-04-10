@@ -70,7 +70,7 @@ $CLR_SELECTED_BORDER = "#0058af"   # 選択セル枠
 $COL_WIDTH_TITLE  = 200         # 「スケジュール名」列の初期幅
 $COL_WIDTH_STATUS = 72          # 「ステータス」列の幅
 $COL_WIDTH_TYPE   = 72          # 「期限タイプ」列の幅
-$COL_WIDTH_CAT    = 72          # 「分類」列の幅
+$COL_WIDTH_CAT    = 80          # 「分類」列の幅
 $COL_WIDTH_DATE   = 72          # 「日付」列の幅
 $COL_WIDTH_TIME   = 43          # 「時間」列の幅
 $COL_WIDTH_MEMO   = 250         # 「メモ」列の幅
@@ -146,7 +146,7 @@ function Get-AllData {
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="スケジュール管理システム" Height="400" Width="675" MinWidth="675" MinHeight="400"
+        Title="スケジュール管理システム" Height="400" Width="769" MinWidth="769" MinHeight="400"
         Background="#F5F5F5" Foreground="#333333" FontFamily="Noto Sans JP, Meiryo, Yu Gothic UI, MS Gothic" FontSize="11"
         WindowStartupLocation="CenterScreen">
     <Window.Resources>
@@ -286,11 +286,11 @@ function Get-AllData {
         <Border Background="#FFFFFF" Padding="10,6" BorderThickness="0,0,0,1" BorderBrush="$CLR_BORDER">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Button Name="BtnAddAppt" Content="予定追加" Padding="12,4" Background="#34A853" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
-                <Button Name="BtnSync" Content="Outlook同期" Padding="12,4" Background="#1A73E8" Foreground="White" BorderThickness="0" Margin="0,0,20,0" FontWeight="SemiBold" Cursor="Hand"/>
+                <Button Name="BtnSync" Content="Outlook同期" Padding="12,4" Background="#1A73E8" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
                 <TextBlock Text="ガント開始日:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
-                <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,20,0"/>
+                <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,5,0"/>
                 <TextBlock Text="表示日数:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
-                <ComboBox Name="GanttDaysCombo" Width="60" VerticalAlignment="Center" SelectedIndex="1">
+                <ComboBox Name="GanttDaysCombo" Width="40" VerticalAlignment="Center" SelectedIndex="1">
                     <ComboBoxItem Content="14"/>
                     <ComboBoxItem Content="35"/>
                     <ComboBoxItem Content="60"/>
@@ -298,7 +298,7 @@ function Get-AllData {
                     <ComboBoxItem Content="120"/>
                 </ComboBox>
                 <Button Name="BtnResetView" Content="表示リセット" Width="90" Height="24" Margin="10,0,0,0" Background="#F5F5F5" BorderBrush="$CLR_BORDER" Cursor="Hand"/>
-                <CheckBox Name="ChkLogMode" Content="作業ログ入力モード" IsChecked="True" VerticalAlignment="Center" Margin="15,0,0,0" Foreground="#333333"/>
+                <CheckBox Name="ChkLogMode" Content="作業ログ入力モード" IsChecked="True" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#333333"/>
                 <Button Name="BtnHelp" Content="？" Width="22" Height="22" Margin="10,0,0,0" Background="#F0F0F0" Foreground="#555555" BorderBrush="$CLR_BORDER" Cursor="Hand" ToolTip="留意事項を表示します"/>
             </StackPanel>
         </Border>
