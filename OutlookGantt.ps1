@@ -48,7 +48,7 @@ $CLR_GANTT_EVEN_BG = "Transparent" # 偶数月（平日）: 透過
 
 $CLR_STA_OVERDUE_BG = "#C27BA0"       # 遅延(・): 薄ピンク
 $CLR_STA_OVERDUE_ABS_BG = "#E06666"   # 遅延(＊): 薄赤
-$CLR_GANTT_PAST_BG = "#a293cc"    # 過去の日付: 薄紫色
+$CLR_GANTT_PAST_BG = "#ada1cc"    # 過去の日付: 薄紫色
 
 # ガントチャート - ヘッダー背景
 $CLR_GANTT_HDR_DEFAULT_BG = "#EAEAEA"   # 通常ヘッダー
