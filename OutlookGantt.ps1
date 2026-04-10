@@ -67,7 +67,13 @@ $CLR_ROW_DISCARDED = "#999999"   # 廃棄行: グレー
 $CLR_SELECTED_BORDER = "#0058af"   # 選択セル枠
 
 # テーブル設定
-$COL_WIDTH_TITLE = 235         # 「スケジュール名」列の初期幅
+$COL_WIDTH_TITLE  = 200         # 「スケジュール名」列の初期幅
+$COL_WIDTH_STATUS = 72          # 「ステータス」列の幅
+$COL_WIDTH_TYPE   = 72          # 「期限タイプ」列の幅
+$COL_WIDTH_CAT    = 72          # 「分類」列の幅
+$COL_WIDTH_DATE   = 72          # 「日付」列の幅
+$COL_WIDTH_TIME   = 43          # 「時間」列の幅
+$COL_WIDTH_MEMO   = 250         # 「メモ」列の幅
 $CLR_EMPTY_CELL_BG = "#BDBDBD"     # 空欄セルの背景色（カレンダー同期など）
 $CLR_GRID_LINE = "#b1b1b1"     # セル間の枠線色
 $CLR_BORDER = "#b1b1b1"        # テーブル外枠・ヘッダー枠線色
@@ -140,7 +146,7 @@ function Get-AllData {
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="スケジュール管理システム" Height="700" Width="1300"
+        Title="スケジュール管理システム" Height="400" Width="675" MinWidth="675" MinHeight="400"
         Background="#F5F5F5" Foreground="#333333" FontFamily="Noto Sans JP, Meiryo, Yu Gothic UI, MS Gothic" FontSize="11"
         WindowStartupLocation="CenterScreen">
     <Window.Resources>
@@ -298,7 +304,7 @@ function Get-AllData {
         
         <TabControl Name="MainTab" Grid.Row="1" Background="Transparent" BorderThickness="1" BorderBrush="$CLR_BORDER" Margin="6" Padding="0">
             <TabItem Header="🔍 カレンダー同期">
-                <DataGrid Name="GridSync" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" SelectionUnit="Cell" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <DataGrid Name="GridSync" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" SelectionUnit="Cell" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="False">
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
                             <Setter Property="Background" Value="#FFFFFF"/>
@@ -324,38 +330,38 @@ function Get-AllData {
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="ステータス" Width="76">
+                        <DataGridTemplateColumn Header="ステータス" Width="$COL_WIDTH_STATUS">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border Style="{StaticResource BadgeStatus}"><TextBlock Text="{Binding ステータス}" HorizontalAlignment="Center"/></Border>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="期限タイプ" Width="76">
+                        <DataGridTemplateColumn Header="期限タイプ" Width="$COL_WIDTH_TYPE">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border Style="{StaticResource BadgeType}"><TextBlock Text="{Binding 期限タイプ}" HorizontalAlignment="Center"/></Border>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="分類" Width="76">
+                        <DataGridTemplateColumn Header="分類" Width="$COL_WIDTH_CAT">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border Style="{StaticResource BadgeCategory}"><TextBlock Text="{Binding 分類}" HorizontalAlignment="Center"/></Border>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="開始日" Binding="{Binding 開始日}">
+                        <DataGridTextColumn Header="開始日" Binding="{Binding 開始日}" Width="$COL_WIDTH_DATE">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="6,0"/></Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Header="終了日" Binding="{Binding 終了日}">
+                        <DataGridTextColumn Header="終了日" Binding="{Binding 終了日}" Width="$COL_WIDTH_DATE">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="6,0"/></Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Header="開始" Binding="{Binding 開始時間}">
+                        <DataGridTextColumn Header="開始" Binding="{Binding 開始時間}" Width="$COL_WIDTH_TIME">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
@@ -381,7 +387,7 @@ function Get-AllData {
                                 </Style>
                             </DataGridTextColumn.CellStyle>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Header="終了" Binding="{Binding 終了時間}">
+                        <DataGridTextColumn Header="終了" Binding="{Binding 終了時間}" Width="$COL_WIDTH_TIME">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
@@ -407,7 +413,7 @@ function Get-AllData {
                                 </Style>
                             </DataGridTextColumn.CellStyle>
                         </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="メモ" SortMemberPath="メモ" Width="*">
+                        <DataGridTemplateColumn Header="メモ" SortMemberPath="メモ" Width="$COL_WIDTH_MEMO">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBox Text="{Binding メモ, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" VerticalAlignment="Center" Margin="6,0" TextWrapping="Wrap"/>
@@ -430,12 +436,12 @@ function Get-AllData {
                                 <Style TargetType="TextBlock"><Setter Property="Margin" Value="6,0"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Header="作業日" Binding="{Binding date}">
+                        <DataGridTextColumn Header="作業日" Binding="{Binding date}" Width="$COL_WIDTH_DATE">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="6,0"/></Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Header="作業時間" Binding="{Binding displayTime}">
+                        <DataGridTextColumn Header="作業時間" Binding="{Binding displayTime}" Width="$COL_WIDTH_TIME">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="6,0"/></Style>
                             </DataGridTextColumn.ElementStyle>
@@ -638,7 +644,7 @@ function Build-GanttColumns {
     # 1. ステータス
     $col1 = New-Object System.Windows.Controls.DataGridTemplateColumn
     $col1.Header = "ステータス"
-    $col1.Width = 76
+    $col1.Width = $COL_WIDTH_STATUS
     $col1.CellTemplate = $Form.Resources["BadgeStatusTemplate"]
     $col1.CellStyle = $fixedCellStyle
     $GridGantt.Columns.Add($col1)
@@ -646,7 +652,7 @@ function Build-GanttColumns {
     # 2. 分類
     $col2 = New-Object System.Windows.Controls.DataGridTemplateColumn
     $col2.Header = "分類"
-    $col2.Width = 76
+    $col2.Width = $COL_WIDTH_CAT
     $col2.CellTemplate = $Form.Resources["BadgeCategoryTemplate"]
     $col2.CellStyle = $fixedCellStyle
     $GridGantt.Columns.Add($col2)
@@ -1117,15 +1123,15 @@ $BtnResetView.Add_Click({
         # GridSync のリセット
         $GridSync.Columns | ForEach-Object { $_.Width = [System.Windows.Controls.DataGridLength]::Auto }
         if ($GridSync.Columns.Count -gt 1) { $GridSync.Columns[1].Width = $COL_WIDTH_TITLE } # スケジュール名
-        if ($GridSync.Columns.Count -gt 2) { $GridSync.Columns[2].Width = 76 } # ステータス
-        if ($GridSync.Columns.Count -gt 3) { $GridSync.Columns[3].Width = 76 } # 期限タイプ
-        if ($GridSync.Columns.Count -gt 4) { $GridSync.Columns[4].Width = 76 } # 分類
-        # 開始日(5), 開始(6), 終了(7) は Auto のまま
+        if ($GridSync.Columns.Count -gt 2) { $GridSync.Columns[2].Width = $COL_WIDTH_STATUS } # ステータス
+        if ($GridSync.Columns.Count -gt 3) { $GridSync.Columns[3].Width = $COL_WIDTH_TYPE }   # 期限タイプ
+        if ($GridSync.Columns.Count -gt 4) { $GridSync.Columns[4].Width = $COL_WIDTH_CAT }    # 分類
+        if ($GridSync.Columns.Count -gt 5) { $GridSync.Columns[5].Width = $COL_WIDTH_DATE }   # 開始日
+        if ($GridSync.Columns.Count -gt 6) { $GridSync.Columns[6].Width = $COL_WIDTH_DATE }   # 終了日
+        if ($GridSync.Columns.Count -gt 7) { $GridSync.Columns[7].Width = $COL_WIDTH_TIME }   # 開始
+        if ($GridSync.Columns.Count -gt 8) { $GridSync.Columns[8].Width = $COL_WIDTH_TIME }   # 終了
         # 最後の列（メモ）を Star にする
-        if ($GridSync.Columns.Count -gt 0) { 
-            $lastIdx = $GridSync.Columns.Count - 1
-            $GridSync.Columns[$lastIdx].Width = [System.Windows.Controls.DataGridLength]::new(1, [System.Windows.Controls.DataGridLengthUnitType]::Star)
-        }
+        if ($GridSync.Columns.Count -gt 9) { $GridSync.Columns[9].Width = $COL_WIDTH_MEMO }   # メモ
         for ($i = 0; $i -lt $GridSync.Columns.Count; $i++) { $GridSync.Columns[$i].DisplayIndex = $i }
 
         # GridLogs のリセット
