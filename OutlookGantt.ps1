@@ -285,6 +285,7 @@ function Get-AllData {
         
         <Border Background="#FFFFFF" Padding="10,6" BorderThickness="0,0,0,1" BorderBrush="$CLR_BORDER">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Name="BtnAddAppt" Content="予定追加" Padding="12,4" Background="#34A853" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
                 <Button Name="BtnSync" Content="Outlook同期" Padding="12,4" Background="#1A73E8" Foreground="White" BorderThickness="0" Margin="0,0,20,0" FontWeight="SemiBold" Cursor="Hand"/>
                 <TextBlock Text="ガント開始日:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
                 <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,20,0"/>
@@ -477,6 +478,7 @@ $reader = (New-Object System.Xml.XmlNodeReader $xaml)
 $Form = [System.Windows.Markup.XamlReader]::Load($reader)
 
 # Define controls
+$BtnAddAppt = $Form.FindName("BtnAddAppt")
 $BtnSync = $Form.FindName("BtnSync")
 $GanttDatePicker = $Form.FindName("GanttDatePicker")
 $GanttDaysCombo = $Form.FindName("GanttDaysCombo")
@@ -491,6 +493,11 @@ $StatusMsg = $Form.FindName("StatusMsg")
 # Set Default Dates
 $GanttDatePicker.SelectedDate = (Get-Date).AddDays(-7)
 
+# --- Button Events ---
+$BtnAddAppt.Add_Click({
+    Invoke-AddAppointmentForm
+})
+
 function Show-Toast($msg) {
     if ($StatusMsg) {
         $StatusMsg.Text = $msg
@@ -503,6 +510,259 @@ function Show-Toast($msg) {
         ) | Out-Null
         [System.Windows.Threading.Dispatcher]::PushFrame($frame)
     }
+}
+
+
+# 予定追加フォームを表示する関数
+function Invoke-AddAppointmentForm {
+    [xml]$formXaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Outlook予定追加" Width="420" SizeToContent="Height"
+        WindowStartupLocation="CenterScreen" Background="#F5F5F5" ResizeMode="NoResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#666666"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="DatePicker">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
+    
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- 0: Type & Cat -->
+            <RowDefinition Height="Auto"/> <!-- 1: Title -->
+            <RowDefinition Height="Auto"/> <!-- 2: Dates -->
+            <RowDefinition Height="Auto"/> <!-- 3: Times -->
+            <RowDefinition Height="Auto"/> <!-- 4: Memo -->
+            <RowDefinition Height="Auto"/> <!-- 5: Buttons -->
+        </Grid.RowDefinitions>
+
+        <!-- 行0: 期限タイプ & 分類 -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="15"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="期限タイプ"/>
+                <ComboBox Name="ComboType" SelectedIndex="1">
+                    <ComboBoxItem Content="✕（絶対期限）" Tag="✕"/>
+                    <ComboBoxItem Content="◆（推奨期限）" Tag="◆"/>
+                    <ComboBoxItem Content="◇（目安期限）" Tag="◇"/>
+                    <ComboBoxItem Content="▶（予定日）" Tag="▶"/>
+                    <ComboBoxItem Content="★（参照用）" Tag="★"/>
+                </ComboBox>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="分類"/>
+                <ComboBox Name="ComboCat" SelectedIndex="0">
+                    <ComboBoxItem Content="業務"/>
+                    <ComboBoxItem Content="重要"/>
+                    <ComboBoxItem Content="調査"/>
+                    <ComboBoxItem Content="雑務"/>
+                    <ComboBoxItem Content="手続き"/>
+                    <ComboBoxItem Content="スキルアップ"/>
+                    <ComboBoxItem Content="会社対応"/>
+                    <ComboBoxItem Content="支払い"/>
+                </ComboBox>
+            </StackPanel>
+        </Grid>
+
+        <!-- 行1: タイトル -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,10">
+            <TextBlock Text="タイトル"/>
+            <TextBox Name="TxtTitle" Height="28"/>
+        </StackPanel>
+
+        <!-- 行2: 日付 -->
+        <Grid Grid.Row="2" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="15"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="開始日"/>
+                <DatePicker Name="DateStart"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2" Name="ContainerEnd">
+                <TextBlock Name="LabelEnd" Text="終了日"/>
+                <DatePicker Name="DateEnd"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- 行3: 時間 (予定日の場合のみ) -->
+        <Grid Name="PanelTime" Grid.Row="3" Margin="0,0,0,10" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="15"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="開始時間"/>
+                <TextBox Name="TimeStart" Height="28" Text="09:00" HorizontalContentAlignment="Center"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="終了時間"/>
+                <TextBox Name="TimeEnd" Height="28" Text="10:00" HorizontalContentAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- 行4: メモ -->
+        <StackPanel Grid.Row="4" VerticalAlignment="Stretch">
+            <TextBlock Text="メモ"/>
+            <TextBox Name="TxtMemo" MinHeight="80" MaxHeight="150" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" Padding="5" Background="#FFFFFF"/>
+        </StackPanel>
+
+        <!-- 行5: ボタン -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Name="BtnSave" Content="Outlookに保存" Width="130" Height="32" Background="#1A73E8" Foreground="White" BorderThickness="0" FontWeight="Bold" Cursor="Hand" Margin="0,0,10,0">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1557B0"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Name="BtnCancel" Content="キャンセル" Width="90" Height="32" Background="#F5F5F5" BorderBrush="#DDDDDD" Cursor="Hand"/>
+        </StackPanel>
+    </Grid>
+</Window>
+"@
+    $reader = New-Object System.Xml.XmlNodeReader $formXaml
+    $window = [Windows.Markup.XamlReader]::Load($reader)
+
+    $comboType = $window.FindName("ComboType")
+    $comboCat  = $window.FindName("ComboCat")
+    $txtTitle  = $window.FindName("TxtTitle")
+    $dateStart = $window.FindName("DateStart")
+    $dateEnd   = $window.FindName("DateEnd")
+    $panelTime = $window.FindName("PanelTime")
+    $timeStart = $window.FindName("TimeStart")
+    $timeEnd   = $window.FindName("TimeEnd")
+    $txtMemo   = $window.FindName("TxtMemo")
+    $btnSave   = $window.FindName("BtnSave")
+    $btnCancel = $window.FindName("BtnCancel")
+
+    # 初期値設定
+    $today = Get-Date
+    $dateStart.SelectedDate = $today
+    $dateEnd.SelectedDate   = $today
+
+    # 期限タイプによる表示切り替え
+    $updateUIByType = {
+        $selectedItem = $comboType.SelectedItem
+        if ($null -ne $selectedItem -and $selectedItem.Tag -eq "▶") {
+            # 予定日の場合：時間を表示、終了日を開始日に同期してロック
+            $panelTime.Visibility = [System.Windows.Visibility]::Visible
+            $dateEnd.SelectedDate = $dateStart.SelectedDate
+            $dateEnd.IsEnabled = $false
+        } else {
+            # それ以外：時間は非表示、終了日は自由に設定可能（終日とする）
+            $panelTime.Visibility = [System.Windows.Visibility]::Collapsed
+            $dateEnd.IsEnabled = $true
+        }
+    }
+
+    $comboType.Add_SelectionChanged({
+        & $updateUIByType
+    })
+
+    # 開始日が変更されたら予定日の場合は終了日も同期
+    $dateStart.Add_SelectedDateChanged({
+        $selectedItem = $comboType.SelectedItem
+        if ($null -ne $selectedItem -and $selectedItem.Tag -eq "▶") {
+            $dateEnd.SelectedDate = $dateStart.SelectedDate
+        }
+    })
+
+    # 初回実行
+    $window.Add_Loaded({ & $updateUIByType })
+
+    # 保存処理
+    $btnSave.Add_Click({
+        # バリデーション
+        if ([string]::IsNullOrWhiteSpace($txtTitle.Text)) {
+            [System.Windows.MessageBox]::Show("タイトルを入力してください。", "エラー", "OK", "Error")
+            return
+        }
+        if (-not $dateStart.SelectedDate) {
+            [System.Windows.MessageBox]::Show("開始日を選択してください。", "エラー", "OK", "Error")
+            return
+        }
+        
+        $selectedType = $comboType.SelectedItem
+        if ($null -eq $selectedType) { return }
+        $isTimed = ($selectedType.Tag -eq "▶")
+
+        try {
+            # タイトル整形: Symbol［Category］Title
+            $symbol   = $selectedType.Tag
+            $category = $comboCat.Text
+            $formattedTitle = "$symbol［$category］$($txtTitle.Text)"
+
+            $outlook = New-Object -ComObject Outlook.Application
+            $appt = $outlook.CreateItem(1) # olAppointmentItem
+
+            $appt.Subject = $formattedTitle
+            $appt.Body = $txtMemo.Text
+            
+            # デフォルトプロパティ設定
+            $appt.BusyStatus  = 0     # 0: olFree (空き時間)
+            $appt.Sensitivity = 2     # 2: olPrivate (非公開)
+            $appt.ReminderSet = $false # アラームなし
+            
+            $sDate = $dateStart.SelectedDate
+            $eDate = $dateEnd.SelectedDate
+
+            if ($isTimed) {
+                # 予定日 ▶ : 時間あり、終日=False
+                if ($timeStart.Text -notmatch '^\d{1,2}:\d{2}$') {
+                    [System.Windows.MessageBox]::Show("開始時間の形式が正しくありません（例 09:00）", "形式エラー", "OK", "Warning")
+                    return
+                }
+                if ($timeEnd.Text -notmatch '^\d{1,2}:\d{2}$') {
+                    [System.Windows.MessageBox]::Show("終了時間の形式が正しくありません（例 10:00）", "形式エラー", "OK", "Warning")
+                    return
+                }
+                $appt.AllDayEvent = $false
+                $appt.Start = $sDate.ToString("yyyy/MM/dd ") + $timeStart.Text
+                $appt.End   = $sDate.ToString("yyyy/MM/dd ") + $timeEnd.Text # 予定日は同日固定
+            } else {
+                # それ以外 : 終日=True
+                $appt.AllDayEvent = $true
+                $appt.Start = $sDate.ToString("yyyy/MM/dd 00:00:00")
+                $appt.End   = $eDate.AddDays(1).ToString("yyyy/MM/dd 00:00:00")
+            }
+
+            $appt.Save()
+            [System.Windows.MessageBox]::Show("Outlookに予定を追加しました。`n（反映するにはメイン画面の同期ボタンを押してください）", "完了", "OK", "Information")
+            $window.Close()
+        } catch {
+            [System.Windows.MessageBox]::Show("保存に失敗しました。詳細:`n$($_.Exception.Message)", "エラー", "OK", "Error")
+        }
+    })
+
+    $btnCancel.Add_Click({ $window.Close() })
+    $window.ShowDialog()
 }
 
 function Invoke-ViewForm {
