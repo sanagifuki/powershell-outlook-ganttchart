@@ -918,7 +918,7 @@ function Refresh-UI {
                         $sym = "□"
                     }
                     else {
-                        if ($p.ステータス -ne "完了" -and $deadline -ne "" -and $dStr -gt $deadline -and $dStr -le $todayStr) {
+                        if ($p.ステータス -ne "完了" -and $deadline -ne "" -and $dStr -gt $deadline -and $dStr -lt $todayStr) {
                             if ($p.期限タイプ -ne "予定日") {
                                 $sym = "・"
                             }
