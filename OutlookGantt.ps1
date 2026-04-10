@@ -48,7 +48,7 @@ $CLR_GANTT_EVEN_BG = "Transparent" # 偶数月（平日）: 透過
 
 $CLR_STA_OVERDUE_BG = "#C27BA0"       # 遅延(・): 薄ピンク
 $CLR_STA_OVERDUE_ABS_BG = "#E06666"   # 遅延(＊): 薄赤
-$CLR_GANTT_PAST_BG = "#ada1cc"    # 過去の日付: 薄紫色
+$CLR_GANTT_PAST_BG = "#b4aacc"    # 過去の日付: 薄紫色
 
 # ガントチャート - ヘッダー背景
 $CLR_GANTT_HDR_DEFAULT_BG = "#EAEAEA"   # 通常ヘッダー
@@ -100,13 +100,13 @@ $CLR_TYP_REF_BG = "#FFD156"; $CLR_TYP_REF_FG = "#363636" # 参照用
 # 1. 以下の変数セクションに、新しい分類用の背景色(_BG)と文字色(_FG)を追加する
 # 2. XAML内の <Style x:Key="BadgeCategory" ...> セクション（200行目前後）に、
 #    この変数を使用する <DataTrigger> を1行追加する
-$CLR_CAT_IMPORTANT_BG = "#FFCFC9"; $CLR_CAT_IMPORTANT_FG = "#c22e2c" # 重要
-$CLR_CAT_CHORE_BG = "#FFE5A0"; $CLR_CAT_CHORE_FG = "#5f4e2e" # 雑務
-$CLR_CAT_PAY_BG = "#bee4ca"; $CLR_CAT_PAY_FG = "#166534" # 業務
-$CLR_CAT_PROC_BG = "#BFE1F6"; $CLR_CAT_PROC_FG = "#1A5FAF" # 手続き
-$CLR_CAT_RES_BG = "#E6CFF2"; $CLR_CAT_RES_FG = "#8F6EAF" # 調査
-$CLR_CAT_SKILL_BG = "#FFC8AA"; $CLR_CAT_SKILL_FG = "#874B17" # スキルアップ
-$CLR_CAT_CORP_BG = "#a8d8f5"; $CLR_CAT_CORP_FG = "#1A5FAF" # 会社対応
+$CLR_CAT_IMPORTANT_BG = "#FECACA"; $CLR_CAT_IMPORTANT_FG = "#991B1B" # 重要
+$CLR_CAT_CHORE_BG = "#FEF08A"; $CLR_CAT_CHORE_FG = "#854D0E" # 雑務
+$CLR_CAT_PAY_BG = "#BAE6FD"; $CLR_CAT_PAY_FG = "#0369A1" # 業務
+$CLR_CAT_PROC_BG = "#D1FAE5"; $CLR_CAT_PROC_FG = "#065F46" # 手続き
+$CLR_CAT_RES_BG = "#E9D5FF"; $CLR_CAT_RES_FG = "#6B21A8" # 調査
+$CLR_CAT_SKILL_BG = "#FED7AA"; $CLR_CAT_SKILL_FG = "#9A3412" # スキルアップ
+$CLR_CAT_CORP_BG = "#E0E7FF"; $CLR_CAT_CORP_FG = "#3730A3" # 会社対応
 
 function Get-AllData {
     $tasks = if (Test-Path $TasksFile) { Get-Content $TasksFile -Raw -Encoding UTF8 | ConvertFrom-Json } else { @() }
@@ -146,7 +146,7 @@ function Get-AllData {
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="スケジュール管理システム" Height="400" Width="769" MinWidth="769" MinHeight="400"
+        Title="スケジュール管理システム" Height="600" Width="769" MinWidth="769" MinHeight="600"
         Background="#F5F5F5" Foreground="#333333" FontFamily="Noto Sans JP, Meiryo, Yu Gothic UI, MS Gothic" FontSize="11"
         WindowStartupLocation="CenterScreen">
     <Window.Resources>
