@@ -15,7 +15,11 @@ function Get-DefaultCategories {
 }
 
 function Get-Categories {
-    $categories = if (Test-Path $CategoriesFile) { Read-JsonArray -Path $CategoriesFile } else { Get-DefaultCategories }
+    if (-not (Test-Path $CategoriesFile)) {
+        Write-JsonData -Path $CategoriesFile -Data (Get-DefaultCategories)
+    }
+
+    $categories = Read-JsonArray -Path $CategoriesFile
 
     foreach ($category in $categories) {
         if (-not $category.background) { $category | Add-Member -MemberType NoteProperty -Name background -Value "#E5E7EB" -Force }

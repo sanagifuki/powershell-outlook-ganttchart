@@ -142,7 +142,7 @@
                 <TextBlock Text="ガント開始日:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
                 <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,5,0"/>
                 <TextBlock Text="表示日数:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
-                <ComboBox Name="GanttDaysCombo" Width="40" VerticalAlignment="Center" SelectedIndex="1">
+                <ComboBox Name="GanttDaysCombo" Width="40" VerticalAlignment="Center">
                     <ComboBoxItem Content="14"/>
                     <ComboBoxItem Content="35"/>
                     <ComboBoxItem Content="60"/>
@@ -150,8 +150,8 @@
                     <ComboBoxItem Content="120"/>
                 </ComboBox>
                 <Button Name="BtnResetView" Content="表示リセット" Width="90" Height="24" Margin="10,0,0,0" Background="#F5F5F5" BorderBrush="$CLR_BORDER" Cursor="Hand"/>
-                <CheckBox Name="ChkLogMode" Content="作業ログ入力モード" IsChecked="True" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#333333"/>
-                <CheckBox Name="ChkSuppressWeekendHighlight" Content="土日の予定色を抑制" IsChecked="False" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#333333"/>
+                <CheckBox Name="ChkLogMode" Content="作業ログ入力モード" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#333333"/>
+                <CheckBox Name="ChkSuppressWeekendHighlight" Content="土日の予定色を抑制" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#333333"/>
                 <Button Name="BtnHelp" Content="？" Width="22" Height="22" Margin="10,0,0,0" Background="#F0F0F0" Foreground="#555555" BorderBrush="$CLR_BORDER" Cursor="Hand" ToolTip="留意事項を表示します"/>
             </StackPanel>
         </Border>
@@ -355,6 +355,11 @@ function Initialize-MainWindowControls {
 $Form = New-MainWindow -Xaml $xaml
 Initialize-MainWindowControls -Window $Form
 
-$GanttDatePicker.SelectedDate = (Get-Date).AddDays(-7)
+$script:AppSettings = Get-AppSettings
+$GanttDatePicker.SelectedDate = (Get-Date).AddDays([int]$AppSettings.ganttStartOffsetDays)
+Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content ([string]$AppSettings.ganttDefaultDays)
+if ($GanttDaysCombo.SelectedIndex -lt 0) { Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content "35" }
+$ChkLogMode.IsChecked = [bool]$AppSettings.logInputModeDefault
+$ChkSuppressWeekendHighlight.IsChecked = [bool]$AppSettings.suppressWeekendScheduleHighlightDefault
 $BtnAddAppt.Add_Click({ Invoke-AddAppointmentForm })
 

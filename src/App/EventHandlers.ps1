@@ -1,3 +1,32 @@
+function Invoke-OutlookSync {
+    param(
+        [string]$SuccessPrefix = "同期完了"
+    )
+
+    $previousContent = $BtnSync.Content
+    $BtnSync.IsEnabled = $false
+    $BtnSync.Content = "同期中..."
+
+    try {
+        $syncData = Get-OutlookScheduleSyncData -TargetEmail $TARGET_OUTLOOK_EMAIL
+        Write-JsonData -Path $TasksFile -Data $syncData.Tasks
+        Refresh-UI
+
+        Show-Toast "$SuccessPrefix ($($syncData.Count) 件) - アカウント: $($syncData.Account)"
+        return $true
+    }
+    catch {
+        $msg = $_.Exception.Message
+        "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - 同期エラー: $msg" | Out-File (Join-Path $ScriptPath "error.log") -Append -Encoding UTF8
+        Show-Toast "同期失敗: $msg"
+        return $false
+    }
+    finally {
+        $BtnSync.IsEnabled = $true
+        $BtnSync.Content = $previousContent
+    }
+}
+
 function Handle-SyncGridDoubleClick {
     if ($GridSync.CurrentColumn -and $GridSync.CurrentColumn.Header -eq "スケジュール名") {
         if ($GridSync.CurrentItem) {
@@ -67,6 +96,6 @@ function Complete-SelectedSchedule {
     $schedules = Read-JsonArray -Path $TasksFile
     $schedules = Set-CachedScheduleCompleted -Schedules $schedules -Uid $task.uid
     Write-JsonData -Path $TasksFile -Data $schedules
-    Refresh-UI
     Show-Toast "完了にしました: $($task.タイトル)"
+    Invoke-OutlookSync -SuccessPrefix "完了登録後の同期完了"
 }

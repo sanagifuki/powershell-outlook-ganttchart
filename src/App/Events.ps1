@@ -1,23 +1,6 @@
 # --- Events ---
 $BtnSync.Add_Click({
-        $BtnSync.IsEnabled = $false
-        $BtnSync.Content = "同期中..."
-        try {
-            $syncData = Get-OutlookScheduleSyncData -TargetEmail $TARGET_OUTLOOK_EMAIL
-            Write-JsonData -Path $TasksFile -Data $syncData.Tasks
-            Refresh-UI
-        
-            Show-Toast "同期完了 ($($syncData.Count) 件) - アカウント: $($syncData.Account)"
-        }
-        catch {
-            $msg = $_.Exception.Message
-            "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - 同期エラー: $msg" | Out-File (Join-Path $ScriptPath "error.log") -Append -Encoding UTF8
-            Show-Toast "同期失敗: $msg"
-        }
-        finally {
-            $BtnSync.IsEnabled = $true
-            $BtnSync.Content = "Outlook同期"
-        }
+        Invoke-OutlookSync
     })
 
 $GanttDatePicker.Add_SelectedDateChanged({ Refresh-UI })

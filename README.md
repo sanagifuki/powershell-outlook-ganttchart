@@ -12,14 +12,30 @@ Outlook の予定を取得し、作業ログと合わせてガントチャート
 
 開発実行時の `schedules.json` / `logs.json` はリポジトリルートを基準に読む。
 
-分類を調整したい場合は、リポジトリルートまたは単一ファイルと同じフォルダに `categories.json` を置く。
-未配置の場合は内蔵の既定分類を使う。
+分類を調整したい場合は、リポジトリルートまたは単一ファイルと同じフォルダの `categories.json` を編集する。
+未配置の場合は、初回読み込み時に内蔵の既定分類から自動生成する。
 
 ```json
 [
   { "name": "業務", "background": "#BAE6FD", "foreground": "#0369A1" },
   { "name": "調査", "background": "#E9D5FF", "foreground": "#6B21A8" }
 ]
+```
+
+チェックボックスや初期表示は、同じ場所の `settings.json` を編集する。
+未配置の場合は、初回読み込み時に内蔵の既定値から自動生成する。
+
+```json
+{
+  "ganttDefaultDays": 35,
+  "ganttStartOffsetDays": -7,
+  "logInputModeDefault": true,
+  "suppressWeekendScheduleHighlightDefault": false,
+  "addAppointmentPrivateDefault": true,
+  "addAppointmentShowAsFreeDefault": true,
+  "addAppointmentTypeDefaultSymbol": "◆",
+  "addAppointmentCategoryDefault": "業務"
+}
 ```
 
 ## 単一ファイル生成

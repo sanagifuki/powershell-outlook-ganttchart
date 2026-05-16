@@ -45,7 +45,7 @@ function New-AddAppointmentWindow {
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0">
                 <TextBlock Text="期限タイプ"/>
-                <ComboBox Name="ComboType" SelectedIndex="1">
+                <ComboBox Name="ComboType">
                     <ComboBoxItem Content="✕（絶対期限）" Tag="✕"/>
                     <ComboBoxItem Content="◆（推奨期限）" Tag="◆"/>
                     <ComboBoxItem Content="◇（目安期限）" Tag="◇"/>
@@ -55,7 +55,7 @@ function New-AddAppointmentWindow {
             </StackPanel>
             <StackPanel Grid.Column="2">
                 <TextBlock Text="分類"/>
-                <ComboBox Name="ComboCat" SelectedIndex="0">
+                <ComboBox Name="ComboCat">
                 </ComboBox>
             </StackPanel>
         </Grid>
@@ -108,8 +108,8 @@ function New-AddAppointmentWindow {
 
         <!-- 行5: Outlook オプション -->
         <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,10,0,0">
-            <CheckBox Name="ChkPrivate" Content="非公開" IsChecked="True" VerticalAlignment="Center" Margin="0,0,14,0"/>
-            <CheckBox Name="ChkShowAsFree" Content="空き時間として表示" IsChecked="True" VerticalAlignment="Center"/>
+            <CheckBox Name="ChkPrivate" Content="非公開" VerticalAlignment="Center" Margin="0,0,14,0"/>
+            <CheckBox Name="ChkShowAsFree" Content="空き時間として表示" VerticalAlignment="Center"/>
         </StackPanel>
 
         <!-- 行6: ボタン -->
@@ -192,7 +192,6 @@ function Invoke-AddAppointmentForm {
     $comboType = $window.FindName("ComboType")
     $comboCat  = $window.FindName("ComboCat")
     $comboCat.ItemsSource = Get-CategoryNames
-    $comboCat.SelectedIndex = 0
     $txtTitle  = $window.FindName("TxtTitle")
     $dateStart = $window.FindName("DateStart")
     $dateEnd   = $window.FindName("DateEnd")
@@ -204,6 +203,14 @@ function Invoke-AddAppointmentForm {
     $chkShowAsFree = $window.FindName("ChkShowAsFree")
     $btnSave   = $window.FindName("BtnSave")
     $btnCancel = $window.FindName("BtnCancel")
+
+    $settings = Get-AppSettings
+    Select-ComboBoxItemByTag -ComboBox $comboType -Tag $settings.addAppointmentTypeDefaultSymbol
+    if ($comboType.SelectedIndex -lt 0) { Select-ComboBoxItemByTag -ComboBox $comboType -Tag "◆" }
+    $comboCat.Text = [string]$settings.addAppointmentCategoryDefault
+    if ([string]::IsNullOrWhiteSpace($comboCat.Text) -and $comboCat.Items.Count -gt 0) { $comboCat.SelectedIndex = 0 }
+    $chkPrivate.IsChecked = [bool]$settings.addAppointmentPrivateDefault
+    $chkShowAsFree.IsChecked = [bool]$settings.addAppointmentShowAsFreeDefault
 
     # 初期値設定
     $today = Get-Date
@@ -247,13 +254,19 @@ function Invoke-AddAppointmentForm {
 
             Add-OutlookAppointment -Subject $formattedTitle -Body $txtMemo.Text -StartDate $sDate -EndDate $eDate -IsTimed $isTimed -StartTime $timeStart.Text -EndTime $timeEnd.Text -IsPrivate $chkPrivate.IsChecked -ShowAsFree $chkShowAsFree.IsChecked
             Show-Toast "Outlookに予定を追加しました: $formattedTitle"
+            $window.DialogResult = $true
             $window.Close()
         } catch {
             [System.Windows.MessageBox]::Show("保存に失敗しました。詳細:`n$($_.Exception.Message)", "エラー", "OK", "Error")
         }
     })
 
-    $btnCancel.Add_Click({ $window.Close() })
-    $window.ShowDialog()
+    $btnCancel.Add_Click({
+            $window.DialogResult = $false
+            $window.Close()
+        })
+    if ($window.ShowDialog() -eq $true) {
+        Invoke-OutlookSync -SuccessPrefix "予定追加後の同期完了"
+    }
 }
 

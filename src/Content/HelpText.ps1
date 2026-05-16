@@ -37,14 +37,26 @@ function Get-HelpText {
 　- ガントセル：その日の作業ログ詳細を表示。
 ・表示リセット：列の幅やスクロールを初期状態に戻します。
 
-■ デフォルトのカスタマイズ（コード編集）
-・色の変更：スクリプト冒頭の「カラー設定」セクション（`$CLR_...）で管理しています。
-・列の幅：`$COL_WIDTH_TITLE 等の変数で調整できます。
+■ 設定ファイルによるカスタマイズ
+・settings.json：画面や予定追加の初期値を管理します。ファイルがない場合は初回読み込み時に自動生成されます。
+　- ganttDefaultDays：ガントチャートの初期表示日数。候補は 14 / 35 / 60 / 90 / 120。
+　- ganttStartOffsetDays：ガント開始日の初期値。-7 なら今日の7日前、0 なら今日、7 なら今日の7日後。
+　- logInputModeDefault：作業ログ入力モードを初期ONにするか。
+　- suppressWeekendScheduleHighlightDefault：土日の予定セルのオレンジ色を初期状態で抑制するか。
+　- addAppointmentPrivateDefault：予定追加時、「非公開」を初期ONにするか。
+　- addAppointmentShowAsFreeDefault：予定追加時、「空き時間として表示」を初期ONにするか。
+　- addAppointmentTypeDefaultSymbol：予定追加時の期限タイプ初期値。✕ / ◆ / ◇ / ▶ のいずれか。
+　- addAppointmentCategoryDefault：予定追加時の分類初期値。
+・categories.json：分類名と分類バッジ色を管理します。ファイルがない場合は初回読み込み時に自動生成されます。
+　- name：分類名。
+　- background：分類バッジの背景色。
+　- foreground：分類バッジの文字色。
 
 ■ データ管理
 ・schedules.json：Outlook同期データ（キャッシュ）。
 ・logs.json：入力した作業ログ。
-※バックアップ時はこの2ファイルを保存してください。
+・settings.json：ユーザー設定。
+・categories.json：分類設定。
+※バックアップ時は上記4ファイルを保存してください。
 "@
 }
-
