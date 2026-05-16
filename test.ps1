@@ -32,6 +32,7 @@ function Assert-True {
 . (Join-Path $repoRoot 'src/Shared/TextUtils.ps1')
 . (Join-Path $repoRoot 'src/Domain/ScheduleParser.ps1')
 . (Join-Path $repoRoot 'src/Domain/AppointmentInput.ps1')
+. (Join-Path $repoRoot 'src/Domain/ScheduleCompletion.ps1')
 . (Join-Path $repoRoot 'src/Domain/WorkLogEditor.ps1')
 . (Join-Path $repoRoot 'src/Domain/WorkLogPresenter.ps1')
 . (Join-Path $repoRoot 'src/Domain/GanttColumnTheme.ps1')
@@ -58,6 +59,14 @@ Assert-Equal $schedule.分類 '調査' 'Schedule category parse failed.'
 Assert-Equal (Format-AppointmentTitle -Symbol '▶' -Category '業務' -Title '確認') '▶［業務］確認' 'Appointment title format failed.'
 Assert-True (Test-TimeText -Text '09:00') 'Valid time should pass.'
 Assert-True (-not (Test-TimeText -Text '9時')) 'Invalid time should fail.'
+
+Assert-Equal (Add-CategoryText -Categories '' -Category '完了') '完了' 'Empty category completion failed.'
+Assert-Equal (Add-CategoryText -Categories '業務' -Category '完了') '業務, 完了' 'Category append failed.'
+$completedSchedules = @(Set-CachedScheduleCompleted -Schedules @([PSCustomObject]@{
+    uid = '1'
+    categories = '業務'
+}) -Uid '1')
+Assert-True ($completedSchedules[0].categories -like '*完了*') 'Cached schedule completion failed.'
 
 $newLog = New-WorkLog -Uid '1' -Date '2026/05/16' -Content '作業' -Time '15'
 Assert-Equal $newLog.uid '1' 'New work log uid failed.'

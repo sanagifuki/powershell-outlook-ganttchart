@@ -101,3 +101,13 @@ function Add-OutlookAppointment {
 
     $appointment.Save()
 }
+
+function Set-OutlookAppointmentCompleted {
+    param([string]$EntryId)
+
+    $outlook = New-Object -ComObject Outlook.Application
+    $namespace = $outlook.GetNamespace("MAPI")
+    $appointment = $namespace.GetItemFromID($EntryId)
+    $appointment.Categories = Add-CategoryText -Categories $appointment.Categories -Category "完了"
+    $appointment.Save()
+}

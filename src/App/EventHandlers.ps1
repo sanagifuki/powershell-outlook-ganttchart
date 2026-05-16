@@ -55,3 +55,31 @@ function Handle-LogsGridDoubleClick {
         Invoke-LogForm -task $taskObj -editLog $logObj
     }
 }
+
+function Get-SelectedScheduleTask {
+    if ($GridGantt.CurrentCell.IsValid -and $GridGantt.CurrentCell.Item) {
+        $task = $GridGantt.CurrentCell.Item["OriginalTask"]
+        if ($task) { return $task }
+    }
+
+    if ($GridSync.CurrentItem) {
+        return $GridSync.CurrentItem
+    }
+
+    return $null
+}
+
+function Complete-SelectedSchedule {
+    $task = Get-SelectedScheduleTask
+    if (-not $task) {
+        Show-Toast "完了にするスケジュールを選択してください"
+        return
+    }
+
+    Set-OutlookAppointmentCompleted -EntryId $task.uid
+    $schedules = Read-JsonArray -Path $TasksFile
+    $schedules = Set-CachedScheduleCompleted -Schedules $schedules -Uid $task.uid
+    Write-JsonData -Path $TasksFile -Data $schedules
+    Refresh-UI
+    Show-Toast "完了にしました: $($task.タイトル)"
+}

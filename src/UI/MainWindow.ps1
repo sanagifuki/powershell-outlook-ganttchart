@@ -148,6 +148,7 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Button Name="BtnAddAppt" Content="予定追加" Padding="12,4" Background="#34A853" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
                 <Button Name="BtnSync" Content="Outlook同期" Padding="12,4" Background="#1A73E8" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+                <Button Name="BtnComplete" Content="完了" Padding="12,4" Background="#1f8d61" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
                 <TextBlock Text="ガント開始日:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
                 <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,5,0"/>
                 <TextBlock Text="表示日数:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
@@ -354,6 +355,7 @@ function Initialize-MainWindowControls {
 
     $script:BtnAddAppt = $Window.FindName("BtnAddAppt")
     $script:BtnSync = $Window.FindName("BtnSync")
+    $script:BtnComplete = $Window.FindName("BtnComplete")
     $script:GanttDatePicker = $Window.FindName("GanttDatePicker")
     $script:GanttDaysCombo = $Window.FindName("GanttDaysCombo")
     $script:BtnResetView = $Window.FindName("BtnResetView")
