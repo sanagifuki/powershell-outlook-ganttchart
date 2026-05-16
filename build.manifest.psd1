@@ -7,6 +7,7 @@
         'src/Domain/ScheduleParser.ps1'
         'src/Domain/WorkLogPresenter.ps1'
         'src/Domain/GanttCell.ps1'
+        'src/Domain/GanttTaskFilter.ps1'
         'src/Infrastructure/DataStore.ps1'
         'src/UI/MainWindow.ps1'
         'src/Shared/WpfUtils.ps1'
