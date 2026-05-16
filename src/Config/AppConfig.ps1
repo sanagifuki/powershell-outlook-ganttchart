@@ -1,5 +1,5 @@
 
-$ScriptPath = $PSScriptRoot
+$ScriptPath = if ($script:AppRoot) { $script:AppRoot } else { $PSScriptRoot }
 $TasksFile = Join-Path $ScriptPath "schedules.json"
 $LogsFile = Join-Path $ScriptPath "logs.json"
 

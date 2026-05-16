@@ -5,6 +5,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $manifest = Import-PowerShellDataFile -LiteralPath $ManifestPath
 $repoRoot = Split-Path -Parent $ManifestPath
+$script:AppRoot = $repoRoot
 
 foreach ($relativePath in $manifest.SourceFiles) {
     $path = Join-Path $repoRoot $relativePath
