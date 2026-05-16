@@ -31,6 +31,11 @@ function Handle-GanttGridDoubleClick {
     }
     elseif ($col -is [System.Windows.Controls.DataGridTemplateColumn] -and $col.SortMemberPath) {
         $dateText = $col.SortMemberPath
+        if ($ChkLogMode.IsChecked -and $taskObj) {
+            Invoke-LogForm -task $taskObj -defaultDate $dateText
+            return
+        }
+
         $text = $item["${dateText}_TT"]
         if (-not [string]::IsNullOrWhiteSpace($text)) {
             Invoke-ViewForm -title "作業ログ ($dateText) - $title" -text $text
@@ -50,4 +55,3 @@ function Handle-LogsGridDoubleClick {
         Invoke-LogForm -task $taskObj -editLog $logObj
     }
 }
-
