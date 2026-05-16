@@ -95,8 +95,8 @@ Assert-Equal $displayLogs[0].title '予定A' 'Work log title lookup failed.'
 Assert-Equal $displayLogs[0].displayTime '15分' 'Work log time format failed.'
 
 Assert-Equal (Get-GanttDateCellBackground -Date ([datetime]'2026-05-16') -TodayText '2026/05/16') $CLR_GANTT_TODAY_BG 'Today cell background failed.'
-$suppressedWeekendBg = Get-GanttDateCellBackground -Date ([datetime]'2026-05-17') -TodayText '2026/05/16' -SuppressWeekendHighlight $true
-Assert-Equal $suppressedWeekendBg $CLR_GANTT_ODD_BG 'Suppressed weekend cell background failed.'
+$weekendBg = Get-GanttDateCellBackground -Date ([datetime]'2026-05-17') -TodayText '2026/05/16'
+Assert-Equal $weekendBg $CLR_GANTT_WE_ODD_BG 'Weekend column background failed.'
 $headerTheme = Get-GanttDateHeaderTheme -Date ([datetime]'2026-05-20') -TodayText '2026/05/16'
 Assert-Equal $headerTheme.Background $CLR_GANTT_HDR_ODD_BG 'Odd month header background failed.'
 
@@ -127,6 +127,8 @@ Assert-Equal $view.Count 1 'Gantt view row count failed.'
 $row = $view[0].Row
 Assert-Equal $row['スケジュール名'] '予定A' 'Gantt row title failed.'
 Assert-Equal $row['2026/05/16'] '▶' 'Gantt row date symbol failed.'
+$suppressedView = ConvertTo-GanttDataView -Tasks @($task) -Logs $logs -StartDate ([datetime]'2026-05-16') -Days 1 -BaseDate ([datetime]'2026-05-16') -SuppressWeekendScheduleHighlight $true
+Assert-Equal $suppressedView[0].Row['2026/05/16_Bg'] 'Transparent' 'Weekend schedule highlight suppression failed.'
 
 $tmp = Join-Path $env:TEMP 'outlook-gantt-jsonstore-test.json'
 if (Test-Path $tmp) { Remove-Item -LiteralPath $tmp -Force }

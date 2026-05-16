@@ -28,13 +28,12 @@ function Add-GanttFixedColumns {
 function Add-GanttDateColumn {
     param(
         [datetime]$Date,
-        [string]$TodayText,
-        [bool]$SuppressWeekendHighlight = $false
+        [string]$TodayText
     )
 
     $dateText = $Date.ToString("yyyy/MM/dd")
-    $cellBackground = Get-GanttDateCellBackground -Date $Date -TodayText $TodayText -SuppressWeekendHighlight $SuppressWeekendHighlight
-    $headerTheme = Get-GanttDateHeaderTheme -Date $Date -TodayText $TodayText -SuppressWeekendHighlight $SuppressWeekendHighlight
+    $cellBackground = Get-GanttDateCellBackground -Date $Date -TodayText $TodayText
+    $headerTheme = Get-GanttDateHeaderTheme -Date $Date -TodayText $TodayText
 
     $column = New-Object System.Windows.Controls.DataGridTemplateColumn
     $column.Header = $Date.ToString("d`n(ddd)")
@@ -53,10 +52,9 @@ function Build-GanttColumns {
     Add-GanttFixedColumns
 
     $todayText = (Get-Date).ToString("yyyy/MM/dd")
-    $suppressWeekendHighlight = ($ChkSuppressWeekendHighlight -and $ChkSuppressWeekendHighlight.IsChecked)
 
     for ($i = 0; $i -lt $days; $i++) {
-        Add-GanttDateColumn -Date ($startDate.AddDays($i)) -TodayText $todayText -SuppressWeekendHighlight $suppressWeekendHighlight
+        Add-GanttDateColumn -Date ($startDate.AddDays($i)) -TodayText $todayText
     }
 }
 

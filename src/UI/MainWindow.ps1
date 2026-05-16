@@ -151,7 +151,7 @@
                 </ComboBox>
                 <Button Name="BtnResetView" Content="表示リセット" Width="90" Height="24" Margin="10,0,0,0" Background="#F5F5F5" BorderBrush="$CLR_BORDER" Cursor="Hand"/>
                 <CheckBox Name="ChkLogMode" Content="作業ログ入力モード" IsChecked="True" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#333333"/>
-                <CheckBox Name="ChkSuppressWeekendHighlight" Content="土日強調を抑制" IsChecked="False" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#333333"/>
+                <CheckBox Name="ChkSuppressWeekendHighlight" Content="土日の予定色を抑制" IsChecked="False" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#333333"/>
                 <Button Name="BtnHelp" Content="？" Width="22" Height="22" Margin="10,0,0,0" Background="#F0F0F0" Foreground="#555555" BorderBrush="$CLR_BORDER" Cursor="Hand" ToolTip="留意事項を表示します"/>
             </StackPanel>
         </Border>
