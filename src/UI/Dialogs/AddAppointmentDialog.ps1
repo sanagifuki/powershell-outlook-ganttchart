@@ -56,14 +56,6 @@ function New-AddAppointmentWindow {
             <StackPanel Grid.Column="2">
                 <TextBlock Text="分類"/>
                 <ComboBox Name="ComboCat" SelectedIndex="0">
-                    <ComboBoxItem Content="業務"/>
-                    <ComboBoxItem Content="重要"/>
-                    <ComboBoxItem Content="調査"/>
-                    <ComboBoxItem Content="雑務"/>
-                    <ComboBoxItem Content="手続き"/>
-                    <ComboBoxItem Content="スキルアップ"/>
-                    <ComboBoxItem Content="会社対応"/>
-                    <ComboBoxItem Content="支払い"/>
                 </ComboBox>
             </StackPanel>
         </Grid>
@@ -199,6 +191,8 @@ function Invoke-AddAppointmentForm {
 
     $comboType = $window.FindName("ComboType")
     $comboCat  = $window.FindName("ComboCat")
+    $comboCat.ItemsSource = Get-CategoryNames
+    $comboCat.SelectedIndex = 0
     $txtTitle  = $window.FindName("TxtTitle")
     $dateStart = $window.FindName("DateStart")
     $dateEnd   = $window.FindName("DateEnd")

@@ -117,23 +117,13 @@
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="TextBlock.FontWeight" Value="SemiBold"/>
             <Setter Property="TextBlock.FontSize" Value="10.5"/>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding 分類}" Value="重要"><Setter Property="Background" Value="$CLR_CAT_IMPORTANT_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_IMPORTANT_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="雑務"><Setter Property="Background" Value="$CLR_CAT_CHORE_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_CHORE_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="支払い"><Setter Property="Background" Value="$CLR_CAT_PAY_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_PAY_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="業務"><Setter Property="Background" Value="$CLR_CAT_PAY_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_PAY_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="手続き"><Setter Property="Background" Value="$CLR_CAT_PROC_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_PROC_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="調査"><Setter Property="Background" Value="$CLR_CAT_RES_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_RES_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="スキルアップ"><Setter Property="Background" Value="$CLR_CAT_SKILL_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_SKILL_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="会社対応"><Setter Property="Background" Value="$CLR_CAT_CORP_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_CORP_FG"/></DataTrigger>
-            </Style.Triggers>
         </Style>
 
         <DataTemplate x:Key="BadgeStatusTemplate">
             <Border Style="{StaticResource BadgeStatus}"><TextBlock Text="{Binding ステータス}" HorizontalAlignment="Center"/></Border>
         </DataTemplate>
         <DataTemplate x:Key="BadgeCategoryTemplate">
-            <Border Style="{StaticResource BadgeCategory}"><TextBlock Text="{Binding 分類}" HorizontalAlignment="Center"/></Border>
+            <Border Style="{StaticResource BadgeCategory}" Background="{Binding 分類背景}"><TextBlock Text="{Binding 分類}" Foreground="{Binding 分類文字色}" HorizontalAlignment="Center"/></Border>
         </DataTemplate>
     </Window.Resources>
     
@@ -208,13 +198,7 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="分類" Width="$COL_WIDTH_CAT">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border Style="{StaticResource BadgeCategory}"><TextBlock Text="{Binding 分類}" HorizontalAlignment="Center"/></Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="分類" Width="$COL_WIDTH_CAT" CellTemplate="{StaticResource BadgeCategoryTemplate}"/>
                         <DataGridTextColumn Header="開始日" Binding="{Binding 開始日}" Width="$COL_WIDTH_DATE">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="6,0"/></Style>

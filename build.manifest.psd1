@@ -4,6 +4,7 @@
         'src/Config/AppConfig.ps1'
         'src/Shared/TextUtils.ps1'
         'src/Config/Theme.ps1'
+        'src/Config/CategoryConfig.ps1'
         'src/Content/HelpText.ps1'
         'src/Domain/ScheduleParser.ps1'
         'src/Domain/AppointmentInput.ps1'

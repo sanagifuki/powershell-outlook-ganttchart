@@ -12,6 +12,16 @@ Outlook の予定を取得し、作業ログと合わせてガントチャート
 
 開発実行時の `schedules.json` / `logs.json` はリポジトリルートを基準に読む。
 
+分類を調整したい場合は、リポジトリルートまたは単一ファイルと同じフォルダに `categories.json` を置く。
+未配置の場合は内蔵の既定分類を使う。
+
+```json
+[
+  { "name": "業務", "background": "#BAE6FD", "foreground": "#0369A1" },
+  { "name": "調査", "background": "#E9D5FF", "foreground": "#6B21A8" }
+]
+```
+
 ## 単一ファイル生成
 
 会社PCなどへコピペで持っていく場合は、単一ファイルを生成する。

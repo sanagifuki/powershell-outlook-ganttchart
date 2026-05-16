@@ -49,13 +49,17 @@ function ConvertTo-ScheduleItem {
     param($Task)
 
     $rawTitle = $Task.title
+    $category = Get-ScheduleCategory -Title $rawTitle
+    $categoryTheme = Get-CategoryTheme -Name $category
 
     [PSCustomObject]@{
         uid = $Task.uid
         タイトル = Get-CleanScheduleTitle -Title $rawTitle
         ステータス = Get-ScheduleStatus -Categories $Task.categories -Title $rawTitle
         期限タイプ = Get-ScheduleType -Title $rawTitle
-        分類 = Get-ScheduleCategory -Title $rawTitle
+        分類 = $category
+        分類背景 = $categoryTheme.background
+        分類文字色 = $categoryTheme.foreground
         開始日 = $Task.start
         終了日 = $Task.end
         開始時間 = $Task.startTime
@@ -63,4 +67,3 @@ function ConvertTo-ScheduleItem {
         メモ = Format-Memo $Task.memo
     }
 }
-

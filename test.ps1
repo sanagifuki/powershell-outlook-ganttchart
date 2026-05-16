@@ -28,7 +28,11 @@ function Assert-True {
     }
 }
 
+$script:AppRoot = $repoRoot
+. (Join-Path $repoRoot 'src/Config/AppConfig.ps1')
 . (Join-Path $repoRoot 'src/Config/Theme.ps1')
+. (Join-Path $repoRoot 'src/Infrastructure/JsonStore.ps1')
+. (Join-Path $repoRoot 'src/Config/CategoryConfig.ps1')
 . (Join-Path $repoRoot 'src/Shared/TextUtils.ps1')
 . (Join-Path $repoRoot 'src/Domain/ScheduleParser.ps1')
 . (Join-Path $repoRoot 'src/Domain/AppointmentInput.ps1')
@@ -39,7 +43,6 @@ function Assert-True {
 . (Join-Path $repoRoot 'src/Domain/GanttCell.ps1')
 . (Join-Path $repoRoot 'src/Domain/GanttTaskFilter.ps1')
 . (Join-Path $repoRoot 'src/Domain/GanttTableBuilder.ps1')
-. (Join-Path $repoRoot 'src/Infrastructure/JsonStore.ps1')
 . (Join-Path $repoRoot 'src/Infrastructure/OutlookClient.ps1')
 
 $schedule = ConvertTo-ScheduleItem -Task ([PSCustomObject]@{
@@ -55,6 +58,8 @@ $schedule = ConvertTo-ScheduleItem -Task ([PSCustomObject]@{
 Assert-Equal $schedule.ステータス '表示' 'Schedule status parse failed.'
 Assert-Equal $schedule.期限タイプ '参照用' 'Schedule type parse failed.'
 Assert-Equal $schedule.分類 '調査' 'Schedule category parse failed.'
+Assert-True (-not [string]::IsNullOrWhiteSpace($schedule.分類背景)) 'Schedule category background failed.'
+Assert-True ((Get-CategoryNames).Count -gt 0) 'Default categories should be loaded.'
 
 Assert-Equal (Format-AppointmentTitle -Symbol '▶' -Category '業務' -Title '確認') '▶［業務］確認' 'Appointment title format failed.'
 Assert-True (Test-TimeText -Text '09:00') 'Valid time should pass.'
