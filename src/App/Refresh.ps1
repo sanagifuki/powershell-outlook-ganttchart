@@ -66,119 +66,13 @@ function Refresh-UI {
         
         for ($i = 0; $i -lt $days; $i++) {
             $dStr = $startDate.AddDays($i).ToString("yyyy/MM/dd")
-            $hasLog = @($pLogs | Where-Object { $_.date -eq $dStr }).Count -gt 0
-            $inPeriod = ($p.開始日 -ne "" -and $p.終了日 -ne "" -and $dStr -ge $p.開始日 -and $dStr -le $p.終了日)
-            if ($p.開始日 -eq "" -and $p.終了日 -ne "" -and $dStr -eq $p.終了日) { $inPeriod = $true }
-
-            $sym = ""
-            $deadline = $p.終了日
-            if ($p.期限タイプ -eq "絶対期限" -and $p.終了日 -ne "") { 
-                try { $deadline = ([datetime]$p.終了日).AddDays(1).ToString("yyyy/MM/dd") } catch {}
-            }
+            $cell = Get-GanttCellState -Task $p -DateText $dStr -TodayText $todayStr -TaskLogs $pLogs -LastWorkDate $lastWorkDate
             
-            if ($p.期限タイプ -eq "参照用") {
-                if ($inPeriod -or $dStr -eq $deadline) { $sym = "★" }
-            }
-            else {
-                if ($hasLog) {
-                    if ($p.期限タイプ -ne "予定日" -and $p.ステータス -eq "完了" -and $dStr -eq $lastWorkDate) {
-                        $sym = "◉"
-                    }
-                    elseif ($p.期限タイプ -eq "予定日" -and $dStr -eq $deadline) {
-                        $sym = "▶"
-                    }
-                    elseif ($inPeriod) {
-                        $sym = "■"
-                    }
-                    else {
-                        $sym = "▲"
-                    }
-                }
-                else {
-                    if ($p.期限タイプ -eq "絶対期限" -and $dStr -eq $deadline) {
-                        $sym = "✕"
-                    }
-                    elseif ($p.期限タイプ -eq "予定日" -and $dStr -eq $deadline) {
-                        $sym = "▷"
-                    }
-                    elseif ($inPeriod) {
-                        $sym = "□"
-                    }
-                    else {
-                        if ($p.ステータス -ne "完了" -and $deadline -ne "" -and $dStr -gt $deadline -and $dStr -lt $todayStr) {
-                            if ($p.期限タイプ -ne "予定日") {
-                                $sym = "・"
-                            }
-                            else {
-                                $sym = "＊"
-                            }
-                        }
-                    }
-                }
-                
-                if ($dStr -eq $deadline -and $sym -ne "") {
-                    if ($p.期限タイプ -eq "推奨期限") { $sym += "‼" }
-                    if ($p.期限タイプ -eq "目安期限") { $sym += "❘" }
-                }
-            }
-            
-            # --- ToolTip Logs + Time Info Construction ---
-            $logText = ""
-            if ($hasLog -or ($dStr -eq $deadline -and ($p.開始時間 -ne "" -or $p.終了時間 -ne ""))) {
-                $timeInfo = ""
-                if ($dStr -eq $deadline) {
-                    if ($p.開始時間 -ne "" -and $p.終了時間 -ne "") { $timeInfo = "$($p.開始時間)～$($p.終了時間)`n`n" }
-                    elseif ($p.開始時間 -eq "" -and $p.終了時間 -ne "") { $timeInfo = "～$($p.終了時間)`n`n" }
-                    elseif ($p.終了時間 -eq "" -and $p.開始時間 -ne "") { $timeInfo = "$($p.開始時間)～`n`n" }
-                }
-
-                $logEntries = @()
-                if ($hasLog) {
-                    $logsForDay = $pLogs | Where-Object { $_.date -eq $dStr }
-                    foreach ($l in $logsForDay) {
-                        $lTime = if ($l.time) { if ($l.time -match '分$') { $l.time } else { "$($l.time)分" } } else { "0分" }
-                        $logEntries += "作業時間：$lTime`n$($l.content)"
-                    }
-                }
-                
-                $logJoin = $logEntries -join "`n`n"
-                $logText = $timeInfo + $logJoin
-                $logText = $logText.Trim()
-            }
-            
-            $bg = "Transparent"
-            # 今日より前の日付（過去）を紫色にする
-            if ($dStr -lt $todayStr) { $bg = $CLR_GANTT_PAST_BG }
-
-            if ($sym -ne "") {
-                if ($p.ステータス -eq "完了") {
-                    $bg = "Transparent"
-                }
-                elseif ($sym -match "✕") {
-                    $bg = "#EA4335" # Red
-                }
-                elseif ($sym -eq "★") {
-                    $bg = $CLR_ROW_DISPLAY # Yellow
-                }
-                elseif ($sym -eq "・") {
-                    $bg = $CLR_STA_OVERDUE_BG # Light Pink
-                }
-                elseif ($sym -match "＊") {
-                    $bg = $CLR_STA_OVERDUE_ABS_BG # Light Red
-                }
-                else {
-                    $bg = "#FF9900" # Orange
-                }
-            }
-            
-            $row[$dStr] = $sym
-            $row["${dStr}_Bg"] = $bg
-            $row["${dStr}_TT"] = $logText
-            $row["${dStr}_Vis"] = ($logText -ne "")
-            
-            # 統合コーナーマーク（右上・青）：ログがある場合、または時間設定（開始・終了）がある場合（期限日）
-            $hasTimeOnThisDay = ($dStr -eq $deadline -and ($p.開始時間 -ne "" -or $p.終了時間 -ne ""))
-            $row["${dStr}_InfoVis"] = if ($hasLog -or $hasTimeOnThisDay) { "Visible" } else { "Collapsed" }
+            $row[$dStr] = $cell.Symbol
+            $row["${dStr}_Bg"] = $cell.Background
+            $row["${dStr}_TT"] = $cell.ToolTip
+            $row["${dStr}_Vis"] = $cell.HasToolTip
+            $row["${dStr}_InfoVis"] = $cell.InfoVisibility
         }
         [void]$dt.Rows.Add($row)
     }
