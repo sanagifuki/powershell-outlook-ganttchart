@@ -1,6 +1,6 @@
 function Get-AllData {
-    $tasks = if (Test-Path $TasksFile) { Get-Content $TasksFile -Raw -Encoding UTF8 | ConvertFrom-Json } else { @() }
-    $logs = if (Test-Path $LogsFile) { Get-Content $LogsFile -Raw -Encoding UTF8 | ConvertFrom-Json } else { @() }
+    $tasks = Read-JsonArray -Path $TasksFile
+    $logs = Read-JsonArray -Path $LogsFile
     $status = @{} # No longer used
     
     $parsed = foreach ($t in $tasks) {

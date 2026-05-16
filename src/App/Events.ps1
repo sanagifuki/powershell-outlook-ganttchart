@@ -41,7 +41,7 @@ $BtnSync.Add_Click({
                 $count++
                 [PSCustomObject]@{ uid = $item.EntryID; title = $item.Subject; start = $item.Start.ToString("yyyy/MM/dd"); end = if ($item.AllDayEvent) { $item.End.AddDays(-1).ToString("yyyy/MM/dd") }else { $item.End.ToString("yyyy/MM/dd") }; startTime = if ($item.AllDayEvent) { "" }else { $item.Start.ToString("HH:mm") }; endTime = if ($item.AllDayEvent) { "" }else { $item.End.ToString("HH:mm") }; memo = (Format-Memo $item.Body); categories = $item.Categories }
             }
-            $tasks | ConvertTo-Json | Out-File $TasksFile -Encoding UTF8
+            Write-JsonData -Path $TasksFile -Data $tasks
             Refresh-UI
         
             # ★ここで下のステータスバーに同期したアカウント名を表示します！

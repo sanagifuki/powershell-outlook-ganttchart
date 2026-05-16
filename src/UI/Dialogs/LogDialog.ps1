@@ -54,7 +54,7 @@ function Invoke-LogForm {
     }
     
     $btnSave.Add_Click({
-            [array]$logs = if (Test-Path $LogsFile) { Get-Content $LogsFile -Raw -Encoding UTF8 | ConvertFrom-Json }else { @() }
+            [array]$logs = Read-JsonArray -Path $LogsFile
             $saveDate = if ($dpDate.SelectedDate) { $dpDate.SelectedDate.ToString("yyyy/MM/dd") } else { $dpDate.Text }
         
             $newLog = [PSCustomObject]@{ uid = $task.uid; date = $saveDate; content = $txtContent.Text; time = $txtTime.Text }
@@ -77,7 +77,7 @@ function Invoke-LogForm {
             else {
                 $logs += $newLog
             }
-            $logs | ConvertTo-Json | Out-File $LogsFile -Encoding UTF8
+            Write-JsonData -Path $LogsFile -Data $logs
         
             $d.DialogResult = $true
             $d.Close()
