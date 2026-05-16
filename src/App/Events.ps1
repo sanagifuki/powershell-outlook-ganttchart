@@ -33,48 +33,13 @@ $BtnResetView.Add_Click({
     })
 
 $GridSync.Add_MouseDoubleClick({
-        if ($GridSync.CurrentColumn -and $GridSync.CurrentColumn.Header -eq "スケジュール名") {
-            if ($GridSync.CurrentItem) { Invoke-LogForm -task $GridSync.CurrentItem }
-        }
+        Handle-SyncGridDoubleClick
     })
 $GridGantt.Add_MouseDoubleClick({
-        if ($GridGantt.CurrentCell.IsValid) {
-            $col = $GridGantt.CurrentColumn
-            $item = $GridGantt.CurrentCell.Item
-            $title = $item["スケジュール名"]
-            $taskObj = $item["OriginalTask"]
-
-            if ($col.Header -eq "スケジュール名") {
-                # スケジュール名列の動作切替
-                if ($taskObj) {
-                    if ($ChkLogMode.IsChecked) {
-                        Invoke-LogForm -task $taskObj
-                    }
-                    else {
-                        $memo = $item["メモ"]
-                        if (-not [string]::IsNullOrWhiteSpace($memo)) {
-                            Invoke-ViewForm -title "メモ - $title" -text $memo
-                        }
-                    }
-                }
-            }
-            elseif ($col -is [System.Windows.Controls.DataGridTemplateColumn] -and $col.SortMemberPath) {
-                # 日付セル（記号列）ならログ表示画面を開く（従来通り）
-                $dStr = $col.SortMemberPath
-                $text = $item["${dStr}_TT"]
-                if (-not [string]::IsNullOrWhiteSpace($text)) {
-                    Invoke-ViewForm -title "作業ログ ($dStr) - $title" -text $text
-                }
-            }
-        }
+        Handle-GanttGridDoubleClick
     })
 $GridLogs.Add_MouseDoubleClick({
-        if ($GridLogs.CurrentItem) {
-            $logObj = $GridLogs.CurrentItem
-            $data = Get-AllData
-            $taskObj = $data.parsed | Where-Object { $_.uid -eq $logObj.uid } | Select-Object -First 1
-            if ($taskObj) { Invoke-LogForm -task $taskObj -editLog $logObj }
-        }
+        Handle-LogsGridDoubleClick
     })
 
 # INITIAL LOAD
