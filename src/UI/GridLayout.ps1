@@ -10,7 +10,7 @@ function Reset-SyncGridLayout {
     if ($Grid.Columns.Count -gt 6) { $Grid.Columns[6].Width = $COL_WIDTH_DATE }
     if ($Grid.Columns.Count -gt 7) { $Grid.Columns[7].Width = $COL_WIDTH_TIME }
     if ($Grid.Columns.Count -gt 8) { $Grid.Columns[8].Width = $COL_WIDTH_TIME }
-    if ($Grid.Columns.Count -gt 9) { $Grid.Columns[9].Width = $COL_WIDTH_MEMO }
+    if ($Grid.Columns.Count -gt 9) { $Grid.Columns[9].Width = [System.Windows.Controls.DataGridLength]::new(1, [System.Windows.Controls.DataGridLengthUnitType]::Star) }
 
     for ($i = 0; $i -lt $Grid.Columns.Count; $i++) {
         $Grid.Columns[$i].DisplayIndex = $i
@@ -34,4 +34,3 @@ function Reset-AllGridLayouts {
     Build-GanttColumns
     Refresh-UI
 }
-

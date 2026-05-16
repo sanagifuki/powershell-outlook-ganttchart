@@ -22,6 +22,8 @@ $BtnSync.Add_Click({
 
 $GanttDatePicker.Add_SelectedDateChanged({ Refresh-UI })
 $GanttDaysCombo.Add_DropDownClosed({ Refresh-UI })
+$ChkSuppressWeekendHighlight.Add_Checked({ Refresh-UI })
+$ChkSuppressWeekendHighlight.Add_Unchecked({ Refresh-UI })
 
 $BtnHelp.Add_Click({
         Invoke-ViewForm -title "留意事項・ヘルプ" -text (Get-HelpText)

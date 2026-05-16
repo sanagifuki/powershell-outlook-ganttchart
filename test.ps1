@@ -81,6 +81,8 @@ Assert-Equal $displayLogs[0].title '予定A' 'Work log title lookup failed.'
 Assert-Equal $displayLogs[0].displayTime '15分' 'Work log time format failed.'
 
 Assert-Equal (Get-GanttDateCellBackground -Date ([datetime]'2026-05-16') -TodayText '2026/05/16') $CLR_GANTT_TODAY_BG 'Today cell background failed.'
+$suppressedWeekendBg = Get-GanttDateCellBackground -Date ([datetime]'2026-05-17') -TodayText '2026/05/16' -SuppressWeekendHighlight $true
+Assert-Equal $suppressedWeekendBg $CLR_GANTT_ODD_BG 'Suppressed weekend cell background failed.'
 $headerTheme = Get-GanttDateHeaderTheme -Date ([datetime]'2026-05-20') -TodayText '2026/05/16'
 Assert-Equal $headerTheme.Background $CLR_GANTT_HDR_ODD_BG 'Odd month header background failed.'
 
