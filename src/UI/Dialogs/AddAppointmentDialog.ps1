@@ -199,21 +199,18 @@ function Invoke-AddAppointmentForm {
         $isTimed = ($selectedType.Tag -eq "▶")
 
         try {
-            # タイトル整形: Symbol［Category］Title
-            $symbol   = $selectedType.Tag
-            $category = $comboCat.Text
-            $formattedTitle = "$symbol［$category］$($txtTitle.Text)"
+            $formattedTitle = Format-AppointmentTitle -Symbol $selectedType.Tag -Category $comboCat.Text -Title $txtTitle.Text
 
             $sDate = $dateStart.SelectedDate
             $eDate = $dateEnd.SelectedDate
 
             if ($isTimed) {
                 # 予定日 ▶ : 時間あり、終日=False
-                if ($timeStart.Text -notmatch '^\d{1,2}:\d{2}$') {
+                if (-not (Test-TimeText -Text $timeStart.Text)) {
                     [System.Windows.MessageBox]::Show("開始時間の形式が正しくありません（例 09:00）", "形式エラー", "OK", "Warning")
                     return
                 }
-                if ($timeEnd.Text -notmatch '^\d{1,2}:\d{2}$') {
+                if (-not (Test-TimeText -Text $timeEnd.Text)) {
                     [System.Windows.MessageBox]::Show("終了時間の形式が正しくありません（例 10:00）", "形式エラー", "OK", "Warning")
                     return
                 }
