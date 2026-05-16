@@ -14,6 +14,7 @@
         'src/Infrastructure/OutlookClient.ps1'
         'src/Infrastructure/DataStore.ps1'
         'src/UI/MainWindow.ps1'
+        'src/UI/GridLayout.ps1'
         'src/Shared/WpfUtils.ps1'
         'src/UI/Dialogs/AddAppointmentDialog.ps1'
         'src/UI/Dialogs/TextViewDialog.ps1'

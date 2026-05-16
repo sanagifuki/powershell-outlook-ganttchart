@@ -28,28 +28,7 @@ $BtnHelp.Add_Click({
     })
 
 $BtnResetView.Add_Click({
-        # GridSync のリセット
-        $GridSync.Columns | ForEach-Object { $_.Width = [System.Windows.Controls.DataGridLength]::Auto }
-        if ($GridSync.Columns.Count -gt 1) { $GridSync.Columns[1].Width = $COL_WIDTH_TITLE } # スケジュール名
-        if ($GridSync.Columns.Count -gt 2) { $GridSync.Columns[2].Width = $COL_WIDTH_STATUS } # ステータス
-        if ($GridSync.Columns.Count -gt 3) { $GridSync.Columns[3].Width = $COL_WIDTH_TYPE }   # 期限タイプ
-        if ($GridSync.Columns.Count -gt 4) { $GridSync.Columns[4].Width = $COL_WIDTH_CAT }    # 分類
-        if ($GridSync.Columns.Count -gt 5) { $GridSync.Columns[5].Width = $COL_WIDTH_DATE }   # 開始日
-        if ($GridSync.Columns.Count -gt 6) { $GridSync.Columns[6].Width = $COL_WIDTH_DATE }   # 終了日
-        if ($GridSync.Columns.Count -gt 7) { $GridSync.Columns[7].Width = $COL_WIDTH_TIME }   # 開始
-        if ($GridSync.Columns.Count -gt 8) { $GridSync.Columns[8].Width = $COL_WIDTH_TIME }   # 終了
-        # 最後の列（メモ）を Star にする
-        if ($GridSync.Columns.Count -gt 9) { $GridSync.Columns[9].Width = $COL_WIDTH_MEMO }   # メモ
-        for ($i = 0; $i -lt $GridSync.Columns.Count; $i++) { $GridSync.Columns[$i].DisplayIndex = $i }
-
-        # GridLogs のリセット
-        if ($GridLogs.Columns.Count -gt 0) { $GridLogs.Columns[0].Width = $COL_WIDTH_TITLE } # 対象スケジュール名
-        if ($GridLogs.Columns.Count -gt 1) { $GridLogs.Columns[1].Width = [System.Windows.Controls.DataGridLength]::new(1, [System.Windows.Controls.DataGridLengthUnitType]::Star) } # 作業内容
-        for ($i = 0; $i -lt $GridLogs.Columns.Count; $i++) { $GridLogs.Columns[$i].DisplayIndex = $i }
-
-        # GridGantt のリセット
-        Build-GanttColumns
-        Refresh-UI
+        Reset-AllGridLayouts
         Show-Toast "表示をリセットしました"
     })
 
