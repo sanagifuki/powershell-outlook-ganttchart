@@ -74,7 +74,9 @@ function Add-OutlookAppointment {
         [datetime]$EndDate,
         [bool]$IsTimed,
         [string]$StartTime,
-        [string]$EndTime
+        [string]$EndTime,
+        [bool]$IsPrivate = $true,
+        [bool]$ShowAsFree = $true
     )
 
     $outlook = New-Object -ComObject Outlook.Application
@@ -82,8 +84,8 @@ function Add-OutlookAppointment {
 
     $appointment.Subject = $Subject
     $appointment.Body = $Body
-    $appointment.BusyStatus = 0
-    $appointment.Sensitivity = 2
+    $appointment.BusyStatus = if ($ShowAsFree) { 0 } else { 2 }
+    $appointment.Sensitivity = if ($IsPrivate) { 2 } else { 0 }
     $appointment.ReminderSet = $false
 
     if ($IsTimed) {
@@ -99,4 +101,3 @@ function Add-OutlookAppointment {
 
     $appointment.Save()
 }
-

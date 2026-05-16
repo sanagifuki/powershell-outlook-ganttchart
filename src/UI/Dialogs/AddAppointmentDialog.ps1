@@ -32,7 +32,8 @@ function New-AddAppointmentWindow {
             <RowDefinition Height="Auto"/> <!-- 2: Dates -->
             <RowDefinition Height="Auto"/> <!-- 3: Times -->
             <RowDefinition Height="Auto"/> <!-- 4: Memo -->
-            <RowDefinition Height="Auto"/> <!-- 5: Buttons -->
+            <RowDefinition Height="Auto"/> <!-- 5: Options -->
+            <RowDefinition Height="Auto"/> <!-- 6: Buttons -->
         </Grid.RowDefinitions>
 
         <!-- 行0: 期限タイプ & 分類 -->
@@ -113,8 +114,14 @@ function New-AddAppointmentWindow {
             <TextBox Name="TxtMemo" MinHeight="80" MaxHeight="150" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" Padding="5" Background="#FFFFFF"/>
         </StackPanel>
 
-        <!-- 行5: ボタン -->
-        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+        <!-- 行5: Outlook オプション -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,10,0,0">
+            <CheckBox Name="ChkPrivate" Content="非公開" IsChecked="True" VerticalAlignment="Center" Margin="0,0,14,0"/>
+            <CheckBox Name="ChkShowAsFree" Content="空き時間として表示" IsChecked="True" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- 行6: ボタン -->
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
             <Button Name="BtnSave" Content="Outlookに保存" Width="130" Height="32" Background="#1A73E8" Foreground="White" BorderThickness="0" FontWeight="Bold" Cursor="Hand" Margin="0,0,10,0">
                 <Button.Style>
                     <Style TargetType="Button">
@@ -199,6 +206,8 @@ function Invoke-AddAppointmentForm {
     $timeStart = $window.FindName("TimeStart")
     $timeEnd   = $window.FindName("TimeEnd")
     $txtMemo   = $window.FindName("TxtMemo")
+    $chkPrivate = $window.FindName("ChkPrivate")
+    $chkShowAsFree = $window.FindName("ChkShowAsFree")
     $btnSave   = $window.FindName("BtnSave")
     $btnCancel = $window.FindName("BtnCancel")
 
@@ -242,7 +251,7 @@ function Invoke-AddAppointmentForm {
             $sDate = $dateStart.SelectedDate
             $eDate = $dateEnd.SelectedDate
 
-            Add-OutlookAppointment -Subject $formattedTitle -Body $txtMemo.Text -StartDate $sDate -EndDate $eDate -IsTimed $isTimed -StartTime $timeStart.Text -EndTime $timeEnd.Text
+            Add-OutlookAppointment -Subject $formattedTitle -Body $txtMemo.Text -StartDate $sDate -EndDate $eDate -IsTimed $isTimed -StartTime $timeStart.Text -EndTime $timeEnd.Text -IsPrivate $chkPrivate.IsChecked -ShowAsFree $chkShowAsFree.IsChecked
             Show-Toast "Outlookに予定を追加しました: $formattedTitle"
             $window.Close()
         } catch {
