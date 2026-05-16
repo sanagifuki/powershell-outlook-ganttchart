@@ -1,0 +1,18 @@
+@{
+    SourceFiles = @(
+        'src/App/Bootstrap.ps1'
+        'src/Config/AppConfig.ps1'
+        'src/Shared/TextUtils.ps1'
+        'src/Config/Theme.ps1'
+        'src/Domain/ScheduleParser.ps1'
+        'src/Infrastructure/DataStore.ps1'
+        'src/UI/MainWindow.ps1'
+        'src/Shared/WpfUtils.ps1'
+        'src/UI/Dialogs/AddAppointmentDialog.ps1'
+        'src/UI/Dialogs/TextViewDialog.ps1'
+        'src/UI/Dialogs/LogDialog.ps1'
+        'src/Domain/GanttViewBuilder.ps1'
+        'src/App/Refresh.ps1'
+        'src/App/Events.ps1'
+    )
+}
