@@ -7,6 +7,7 @@
         'src/Content/HelpText.ps1'
         'src/Domain/ScheduleParser.ps1'
         'src/Domain/WorkLogPresenter.ps1'
+        'src/Domain/GanttColumnTheme.ps1'
         'src/Domain/GanttCell.ps1'
         'src/Domain/GanttTaskFilter.ps1'
         'src/Domain/GanttTableBuilder.ps1'

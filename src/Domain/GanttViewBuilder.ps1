@@ -77,33 +77,8 @@ function Build-GanttColumns {
     for ($i = 0; $i -lt $days; $i++) {
         $d = $startDate.AddDays($i)
         $dStr = $d.ToString("yyyy/MM/dd")
-        $isToday = ($dStr -eq $todayStr)
-        $isWeekend = ($d.DayOfWeek -eq 'Saturday' -or $d.DayOfWeek -eq 'Sunday')
-        $isOddMonth = ($d.Month % 2 -eq 1)
-        
-        # --- Determine cell background color ---
-        $cellBg = $CLR_GANTT_EVEN_BG
-        if ($isToday) {
-            $cellBg = $CLR_GANTT_TODAY_BG
-        }
-        elseif ($isWeekend) {
-            if ($isOddMonth) { $cellBg = $CLR_GANTT_WE_ODD_BG }
-            else { $cellBg = $CLR_GANTT_WE_EVEN_BG }
-        }
-        elseif ($isOddMonth) {
-            $cellBg = $CLR_GANTT_ODD_BG
-        }
-        
-        # --- Determine header style ---
-        $headerBg = $CLR_GANTT_HDR_DEFAULT_BG
-        $headerFg = $CLR_GANTT_HDR_FG
-        if ($isToday) {
-            $headerBg = $CLR_GANTT_HDR_TODAY_BG
-            $headerFg = $CLR_GANTT_HDR_TODAY_FG
-        }
-        elseif ($isOddMonth) {
-            $headerBg = $CLR_GANTT_HDR_ODD_BG
-        }
+        $cellBg = Get-GanttDateCellBackground -Date $d -TodayText $todayStr
+        $headerTheme = Get-GanttDateHeaderTheme -Date $d -TodayText $todayStr
         
         $col = New-Object System.Windows.Controls.DataGridTemplateColumn
         $col.Header = $d.ToString("d`n(ddd)")
@@ -111,8 +86,8 @@ function Build-GanttColumns {
         
         # Apply header style
         $headerStyle = New-Object System.Windows.Style([System.Windows.Controls.Primitives.DataGridColumnHeader])
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BackgroundProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($headerBg))))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::ForegroundProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($headerFg))))
+        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BackgroundProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($headerTheme.Background))))
+        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::ForegroundProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($headerTheme.Foreground))))
         $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::PaddingProperty, [System.Windows.Thickness]::new(6, 4, 6, 4))))
         $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::FontWeightProperty, [System.Windows.FontWeights]::SemiBold)))
         $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::HorizontalContentAlignmentProperty, [System.Windows.HorizontalAlignment]::Center)))
