@@ -32,6 +32,7 @@ function Assert-True {
 . (Join-Path $repoRoot 'src/Shared/TextUtils.ps1')
 . (Join-Path $repoRoot 'src/Domain/ScheduleParser.ps1')
 . (Join-Path $repoRoot 'src/Domain/AppointmentInput.ps1')
+. (Join-Path $repoRoot 'src/Domain/WorkLogEditor.ps1')
 . (Join-Path $repoRoot 'src/Domain/WorkLogPresenter.ps1')
 . (Join-Path $repoRoot 'src/Domain/GanttColumnTheme.ps1')
 . (Join-Path $repoRoot 'src/Domain/GanttCell.ps1')
@@ -57,6 +58,15 @@ Assert-Equal $schedule.分類 '調査' 'Schedule category parse failed.'
 Assert-Equal (Format-AppointmentTitle -Symbol '▶' -Category '業務' -Title '確認') '▶［業務］確認' 'Appointment title format failed.'
 Assert-True (Test-TimeText -Text '09:00') 'Valid time should pass.'
 Assert-True (-not (Test-TimeText -Text '9時')) 'Invalid time should fail.'
+
+$newLog = New-WorkLog -Uid '1' -Date '2026/05/16' -Content '作業' -Time '15'
+Assert-Equal $newLog.uid '1' 'New work log uid failed.'
+$updatedLogs = @(Upsert-WorkLog -Logs @() -NewLog $newLog -EditLog $null)
+Assert-Equal $updatedLogs.Count 1 'Work log insert failed.'
+$replacementLog = New-WorkLog -Uid '1' -Date '2026/05/16' -Content '更新' -Time '20'
+$updatedLogs = @(Upsert-WorkLog -Logs $updatedLogs -NewLog $replacementLog -EditLog $newLog)
+Assert-Equal $updatedLogs.Count 1 'Work log update should not append.'
+Assert-Equal $updatedLogs[0].content '更新' 'Work log update content failed.'
 
 $displayLogs = @(ConvertTo-DisplayWorkLogs -Logs @([PSCustomObject]@{
     uid = '1'
@@ -123,4 +133,3 @@ Assert-Equal $appointment.uid 'abc' 'Outlook appointment uid conversion failed.'
 Assert-Equal $appointment.startTime '09:00' 'Outlook appointment start time conversion failed.'
 
 Write-Host 'All tests passed.'
-

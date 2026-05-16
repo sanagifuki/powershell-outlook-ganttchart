@@ -57,26 +57,8 @@ function Invoke-LogForm {
             [array]$logs = Read-JsonArray -Path $LogsFile
             $saveDate = if ($dpDate.SelectedDate) { $dpDate.SelectedDate.ToString("yyyy/MM/dd") } else { $dpDate.Text }
         
-            $newLog = [PSCustomObject]@{ uid = $task.uid; date = $saveDate; content = $txtContent.Text; time = $txtTime.Text }
-        
-            if ($editLog) {
-                $idx = -1
-                for ($i = 0; $i -lt $logs.Count; $i++) {
-                    if ($logs[$i].uid -eq $editLog.uid -and $logs[$i].date -eq $editLog.date -and $logs[$i].time -eq $editLog.time -and $logs[$i].content -eq $editLog.content) {
-                        $idx = $i
-                        break
-                    }
-                }
-                if ($idx -ge 0) {
-                    $logs[$idx] = $newLog
-                }
-                else {
-                    $logs += $newLog
-                }
-            }
-            else {
-                $logs += $newLog
-            }
+            $newLog = New-WorkLog -Uid $task.uid -Date $saveDate -Content $txtContent.Text -Time $txtTime.Text
+            $logs = Upsert-WorkLog -Logs $logs -NewLog $newLog -EditLog $editLog
             Write-JsonData -Path $LogsFile -Data $logs
         
             $d.DialogResult = $true
