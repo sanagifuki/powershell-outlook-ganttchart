@@ -114,12 +114,7 @@ function Format-GanttCellToolTip {
 
     $logEntries = @()
     foreach ($log in $LogsForDay) {
-        $logTime = if ($log.time) {
-            if ($log.time -match '分$') { $log.time } else { "$($log.time)分" }
-        }
-        else {
-            "0分"
-        }
+        $logTime = Format-WorkLogTime -WorkTime ($log.time)
         $logEntries += "作業時間：$logTime`n$($log.content)"
     }
 
@@ -188,4 +183,3 @@ function Get-GanttCellState {
         InfoVisibility = if ($hasLog -or $hasTimeOnThisDay) { "Visible" } else { "Collapsed" }
     }
 }
-

@@ -5,6 +5,7 @@
         'src/Shared/TextUtils.ps1'
         'src/Config/Theme.ps1'
         'src/Domain/ScheduleParser.ps1'
+        'src/Domain/WorkLogPresenter.ps1'
         'src/Domain/GanttCell.ps1'
         'src/Infrastructure/DataStore.ps1'
         'src/UI/MainWindow.ps1'

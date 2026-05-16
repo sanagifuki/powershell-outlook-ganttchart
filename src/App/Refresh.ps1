@@ -4,16 +4,7 @@ function Refresh-UI {
     # === 同期シート・作業ログ ===
     $GridSync.ItemsSource = [System.Collections.ArrayList]@($data.parsed)
     
-    # ログ表示用のデータを準備（最新順にソートし、タイトルを紐付け、表示時間を整形）
-    $displayLogs = foreach ($l in ($data.logs | Sort-Object date -Descending)) {
-        $taskEntry = $data.parsed | Where-Object { $_.uid -eq $l.uid } | Select-Object -First 1
-        $title = if ($taskEntry) { $taskEntry.タイトル } else { "不明なスケジュール" }
-        
-        # タイトルと表示時間をプロパティとして追加
-        $l | Add-Member -MemberType NoteProperty -Name "title" -Value $title -Force
-        $timeStr = if ($l.time) { if ($l.time -match '分$') { $l.time } else { "$($l.time)分" } } else { "0分" }
-        $l | Add-Member -MemberType NoteProperty -Name "displayTime" -Value $timeStr -Force -PassThru
-    }
+    $displayLogs = ConvertTo-DisplayWorkLogs -Logs $data.logs -Tasks $data.parsed
     $GridLogs.ItemsSource = [System.Collections.ArrayList]@($displayLogs)
     
     # === ガントチャート ===
