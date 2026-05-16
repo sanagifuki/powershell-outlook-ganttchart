@@ -1,10 +1,10 @@
-function Invoke-LogForm {
-    param($task, $defaultDate, $editLog)
-    
+function New-LogWindow {
+    param($Task)
+
     [xml]$dXaml = @"
     <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            Title="ログ入力: $($task.タイトル -replace '&','&amp;')" Height="320" Width="350"
+            Title="ログ入力: $($Task.タイトル -replace '&','&amp;')" Height="320" Width="350"
             Background="#F5F5F5" Foreground="#333333" FontFamily="Noto Sans JP" FontSize="11"
             WindowStartupLocation="CenterOwner" ResizeMode="CanResize" MinWidth="320" MinHeight="300">
         <Grid Margin="12,8,12,12">
@@ -33,7 +33,35 @@ function Invoke-LogForm {
     </Window>
 "@
     $dReader = (New-Object System.Xml.XmlNodeReader $dXaml)
-    $d = [System.Windows.Markup.XamlReader]::Load($dReader)
+    [System.Windows.Markup.XamlReader]::Load($dReader)
+}
+
+function Initialize-LogFormFields {
+    param(
+        $DatePicker,
+        $TimeTextBox,
+        $ContentTextBox,
+        $DefaultDate,
+        $EditLog
+    )
+
+    if ($EditLog) {
+        $DatePicker.Text = $EditLog.date
+        if ($EditLog.time) { $TimeTextBox.Text = ($EditLog.time -replace '分$', '') }
+        $ContentTextBox.Text = $EditLog.content
+    }
+    elseif ($DefaultDate) {
+        $DatePicker.Text = $DefaultDate
+    }
+    else {
+        $DatePicker.Text = (Get-Date).ToString("yyyy/MM/dd")
+    }
+}
+
+function Invoke-LogForm {
+    param($task, $defaultDate, $editLog)
+    
+    $d = New-LogWindow -Task $task
     $d.Owner = $Form
 
     $dpDate = $d.FindName("dpDate")
@@ -41,17 +69,7 @@ function Invoke-LogForm {
     $txtContent = $d.FindName("txtContent")
     $btnSave = $d.FindName("btnSave")
     
-    if ($editLog) {
-        $dpDate.Text = $editLog.date
-        if ($editLog.time) { $txtTime.Text = ($editLog.time -replace '分$', '') }
-        $txtContent.Text = $editLog.content
-    }
-    elseif ($defaultDate) {
-        $dpDate.Text = $defaultDate
-    }
-    else {
-        $dpDate.Text = (Get-Date).ToString("yyyy/MM/dd")
-    }
+    Initialize-LogFormFields -DatePicker $dpDate -TimeTextBox $txtTime -ContentTextBox $txtContent -DefaultDate $defaultDate -EditLog $editLog
     
     $btnSave.Add_Click({
             [array]$logs = Read-JsonArray -Path $LogsFile
