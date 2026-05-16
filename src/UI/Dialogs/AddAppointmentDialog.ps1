@@ -1,5 +1,4 @@
-# 予定追加フォームを表示する関数
-function Invoke-AddAppointmentForm {
+function New-AddAppointmentWindow {
     [xml]$formXaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -133,7 +132,63 @@ function Invoke-AddAppointmentForm {
 </Window>
 "@
     $reader = New-Object System.Xml.XmlNodeReader $formXaml
-    $window = [Windows.Markup.XamlReader]::Load($reader)
+    [Windows.Markup.XamlReader]::Load($reader)
+}
+
+function Update-AddAppointmentTypeUi {
+    param(
+        $ComboType,
+        $PanelTime,
+        $DateStart,
+        $DateEnd
+    )
+
+    $selectedItem = $ComboType.SelectedItem
+    if ($null -ne $selectedItem -and $selectedItem.Tag -eq "▶") {
+        $PanelTime.Visibility = [System.Windows.Visibility]::Visible
+        $DateEnd.SelectedDate = $DateStart.SelectedDate
+        $DateEnd.IsEnabled = $false
+    }
+    else {
+        $PanelTime.Visibility = [System.Windows.Visibility]::Collapsed
+        $DateEnd.IsEnabled = $true
+    }
+}
+
+function Test-AddAppointmentInput {
+    param(
+        $TitleTextBox,
+        $DateStart,
+        [bool]$IsTimed,
+        $TimeStart,
+        $TimeEnd
+    )
+
+    if ([string]::IsNullOrWhiteSpace($TitleTextBox.Text)) {
+        [System.Windows.MessageBox]::Show("タイトルを入力してください。", "エラー", "OK", "Error")
+        return $false
+    }
+    if (-not $DateStart.SelectedDate) {
+        [System.Windows.MessageBox]::Show("開始日を選択してください。", "エラー", "OK", "Error")
+        return $false
+    }
+    if ($IsTimed) {
+        if (-not (Test-TimeText -Text $TimeStart.Text)) {
+            [System.Windows.MessageBox]::Show("開始時間の形式が正しくありません（例 09:00）", "形式エラー", "OK", "Warning")
+            return $false
+        }
+        if (-not (Test-TimeText -Text $TimeEnd.Text)) {
+            [System.Windows.MessageBox]::Show("終了時間の形式が正しくありません（例 10:00）", "形式エラー", "OK", "Warning")
+            return $false
+        }
+    }
+
+    return $true
+}
+
+# 予定追加フォームを表示する関数
+function Invoke-AddAppointmentForm {
+    $window = New-AddAppointmentWindow
 
     $comboType = $window.FindName("ComboType")
     $comboCat  = $window.FindName("ComboCat")
@@ -152,19 +207,8 @@ function Invoke-AddAppointmentForm {
     $dateStart.SelectedDate = $today
     $dateEnd.SelectedDate   = $today
 
-    # 期限タイプによる表示切り替え
     $updateUIByType = {
-        $selectedItem = $comboType.SelectedItem
-        if ($null -ne $selectedItem -and $selectedItem.Tag -eq "▶") {
-            # 予定日の場合：時間を表示、終了日を開始日に同期してロック
-            $panelTime.Visibility = [System.Windows.Visibility]::Visible
-            $dateEnd.SelectedDate = $dateStart.SelectedDate
-            $dateEnd.IsEnabled = $false
-        } else {
-            # それ以外：時間は非表示、終了日は自由に設定可能（終日とする）
-            $panelTime.Visibility = [System.Windows.Visibility]::Collapsed
-            $dateEnd.IsEnabled = $true
-        }
+        Update-AddAppointmentTypeUi -ComboType $comboType -PanelTime $panelTime -DateStart $dateStart -DateEnd $dateEnd
     }
 
     $comboType.Add_SelectionChanged({
@@ -184,37 +228,19 @@ function Invoke-AddAppointmentForm {
 
     # 保存処理
     $btnSave.Add_Click({
-        # バリデーション
-        if ([string]::IsNullOrWhiteSpace($txtTitle.Text)) {
-            [System.Windows.MessageBox]::Show("タイトルを入力してください。", "エラー", "OK", "Error")
-            return
-        }
-        if (-not $dateStart.SelectedDate) {
-            [System.Windows.MessageBox]::Show("開始日を選択してください。", "エラー", "OK", "Error")
-            return
-        }
-        
         $selectedType = $comboType.SelectedItem
         if ($null -eq $selectedType) { return }
         $isTimed = ($selectedType.Tag -eq "▶")
+
+        if (-not (Test-AddAppointmentInput -TitleTextBox $txtTitle -DateStart $dateStart -IsTimed $isTimed -TimeStart $timeStart -TimeEnd $timeEnd)) {
+            return
+        }
 
         try {
             $formattedTitle = Format-AppointmentTitle -Symbol $selectedType.Tag -Category $comboCat.Text -Title $txtTitle.Text
 
             $sDate = $dateStart.SelectedDate
             $eDate = $dateEnd.SelectedDate
-
-            if ($isTimed) {
-                # 予定日 ▶ : 時間あり、終日=False
-                if (-not (Test-TimeText -Text $timeStart.Text)) {
-                    [System.Windows.MessageBox]::Show("開始時間の形式が正しくありません（例 09:00）", "形式エラー", "OK", "Warning")
-                    return
-                }
-                if (-not (Test-TimeText -Text $timeEnd.Text)) {
-                    [System.Windows.MessageBox]::Show("終了時間の形式が正しくありません（例 10:00）", "形式エラー", "OK", "Warning")
-                    return
-                }
-            }
 
             Add-OutlookAppointment -Subject $formattedTitle -Body $txtMemo.Text -StartDate $sDate -EndDate $eDate -IsTimed $isTimed -StartTime $timeStart.Text -EndTime $timeEnd.Text
             Show-Toast "Outlookに予定を追加しました: $formattedTitle"
