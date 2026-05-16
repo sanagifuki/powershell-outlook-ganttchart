@@ -8,6 +8,7 @@
         'src/Domain/WorkLogPresenter.ps1'
         'src/Domain/GanttCell.ps1'
         'src/Domain/GanttTaskFilter.ps1'
+        'src/Domain/GanttTableBuilder.ps1'
         'src/Infrastructure/JsonStore.ps1'
         'src/Infrastructure/DataStore.ps1'
         'src/UI/MainWindow.ps1'
