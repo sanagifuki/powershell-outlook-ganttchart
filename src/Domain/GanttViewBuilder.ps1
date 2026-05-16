@@ -45,14 +45,7 @@ function Build-GanttColumns {
     $col3.Width = $COL_WIDTH_TITLE
     $col3.CellStyle = $fixedCellStyle
     # ヘッダー設定（同期タブと統一）
-    $col3HeaderStyle = New-Object System.Windows.Style -ArgumentList ([System.Windows.Controls.Primitives.DataGridColumnHeader])
-    $col3HeaderStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BackgroundProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($CLR_TITLE_CELL_BG))))
-    $col3HeaderStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::FontWeightProperty, [System.Windows.FontWeights]::SemiBold)))
-    $col3HeaderStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::HorizontalContentAlignmentProperty, [System.Windows.HorizontalAlignment]::Center)))
-    $col3HeaderStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::PaddingProperty, [System.Windows.Thickness]::new(6, 4, 6, 4))))
-    $col3HeaderStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BorderThicknessProperty, [System.Windows.Thickness]::new(0, 0, 1, 1))))
-    $col3HeaderStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BorderBrushProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($CLR_BORDER))))
-    $col3.HeaderStyle = $col3HeaderStyle
+    $col3.HeaderStyle = New-GanttHeaderStyle -Background $CLR_TITLE_CELL_BG
 
     $col3.CellTemplate = [System.Windows.Markup.XamlReader]::Parse(@"
 <DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
@@ -85,17 +78,7 @@ function Build-GanttColumns {
         $col.SortMemberPath = $dStr
         
         # Apply header style
-        $headerStyle = New-Object System.Windows.Style([System.Windows.Controls.Primitives.DataGridColumnHeader])
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BackgroundProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($headerTheme.Background))))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::ForegroundProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($headerTheme.Foreground))))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::PaddingProperty, [System.Windows.Thickness]::new(6, 4, 6, 4))))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::FontWeightProperty, [System.Windows.FontWeights]::SemiBold)))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::HorizontalContentAlignmentProperty, [System.Windows.HorizontalAlignment]::Center)))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.TextBlock]::TextAlignmentProperty, [System.Windows.TextAlignment]::Center)))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::VerticalContentAlignmentProperty, [System.Windows.VerticalAlignment]::Center)))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BorderThicknessProperty, [System.Windows.Thickness]::new(0, 0, 1, 1))))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BorderBrushProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($CLR_BORDER))))
-        $col.HeaderStyle = $headerStyle
+        $col.HeaderStyle = New-GanttHeaderStyle -Background $headerTheme.Background -Foreground $headerTheme.Foreground
         
         $cellStyleXaml = @"
 <Style TargetType="DataGridCell" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
