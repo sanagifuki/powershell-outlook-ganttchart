@@ -56,23 +56,10 @@ function Handle-LogsGridDoubleClick {
     }
 }
 
-function Get-SelectedScheduleTask {
-    if ($GridGantt.CurrentCell.IsValid -and $GridGantt.CurrentCell.Item) {
-        $task = $GridGantt.CurrentCell.Item["OriginalTask"]
-        if ($task) { return $task }
-    }
-
-    if ($GridSync.CurrentItem) {
-        return $GridSync.CurrentItem
-    }
-
-    return $null
-}
-
 function Complete-SelectedSchedule {
-    $task = Get-SelectedScheduleTask
+    $data = Get-AllData
+    $task = Invoke-CompleteSchedulePicker -Tasks $data.parsed
     if (-not $task) {
-        Show-Toast "完了にするスケジュールを選択してください"
         return
     }
 

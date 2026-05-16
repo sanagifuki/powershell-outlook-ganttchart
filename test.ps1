@@ -72,6 +72,12 @@ $completedSchedules = @(Set-CachedScheduleCompleted -Schedules @([PSCustomObject
     categories = '業務'
 }) -Uid '1')
 Assert-True ($completedSchedules[0].categories -like '*完了*') 'Cached schedule completion failed.'
+$incompleteSchedules = @(Get-IncompleteSchedules -Schedules @(
+        [PSCustomObject]@{ ステータス = '完了'; 開始日 = '2026/05/16'; タイトル = 'done' },
+        [PSCustomObject]@{ ステータス = '未着手'; 開始日 = '2026/05/15'; タイトル = 'todo' }
+    ))
+Assert-Equal $incompleteSchedules.Count 1 'Incomplete schedule filtering failed.'
+Assert-Equal $incompleteSchedules[0].タイトル 'todo' 'Incomplete schedule item failed.'
 
 $newLog = New-WorkLog -Uid '1' -Date '2026/05/16' -Content '作業' -Time '15'
 Assert-Equal $newLog.uid '1' 'New work log uid failed.'

@@ -29,3 +29,8 @@ function Set-CachedScheduleCompleted {
     return @($Schedules)
 }
 
+function Get-IncompleteSchedules {
+    param([array]$Schedules)
+
+    @($Schedules | Where-Object { $_.ステータス -ne "完了" } | Sort-Object 開始日, タイトル)
+}

@@ -26,6 +26,7 @@
         'src/UI/Dialogs/AddAppointmentDialog.ps1'
         'src/UI/Dialogs/TextViewDialog.ps1'
         'src/UI/Dialogs/LogDialog.ps1'
+        'src/UI/Dialogs/CompleteScheduleDialog.ps1'
         'src/UI/GanttViewBuilder.ps1'
         'src/App/Refresh.ps1'
         'src/App/EventHandlers.ps1'
