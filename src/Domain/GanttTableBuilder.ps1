@@ -31,8 +31,7 @@ function Add-GanttTaskRow {
         [array]$Logs,
         [datetime]$StartDate,
         [int]$Days,
-        [string]$TodayText,
-        [bool]$SuppressWeekendScheduleHighlight = $false
+        [string]$TodayText
     )
 
     $row = $DataTable.NewRow()
@@ -50,17 +49,11 @@ function Add-GanttTaskRow {
     }
 
     for ($i = 0; $i -lt $Days; $i++) {
-        $date = $StartDate.AddDays($i)
-        $dateText = $date.ToString("yyyy/MM/dd")
+        $dateText = $StartDate.AddDays($i).ToString("yyyy/MM/dd")
         $cell = Get-GanttCellState -Task $Task -DateText $dateText -TodayText $TodayText -TaskLogs $taskLogs -LastWorkDate $lastWorkDate
-        $background = $cell.Background
-        $isWeekend = ($date.DayOfWeek -eq 'Saturday' -or $date.DayOfWeek -eq 'Sunday')
-        if ($SuppressWeekendScheduleHighlight -and $isWeekend -and $background -eq "#FF9900") {
-            $background = "Transparent"
-        }
 
         $row[$dateText] = $cell.Symbol
-        $row["${dateText}_Bg"] = $background
+        $row["${dateText}_Bg"] = $cell.Background
         $row["${dateText}_TT"] = $cell.ToolTip
         $row["${dateText}_Vis"] = $cell.HasToolTip
         $row["${dateText}_InfoVis"] = $cell.InfoVisibility
@@ -75,15 +68,14 @@ function ConvertTo-GanttDataView {
         [array]$Logs,
         [datetime]$StartDate,
         [int]$Days,
-        [datetime]$BaseDate = (Get-Date),
-        [bool]$SuppressWeekendScheduleHighlight = $false
+        [datetime]$BaseDate = (Get-Date)
     )
 
     $todayText = $BaseDate.ToString("yyyy/MM/dd")
     $table = New-GanttDataTable -StartDate $StartDate -Days $Days
 
     foreach ($task in (Select-GanttVisibleTasks -Tasks $Tasks -BaseDate $BaseDate)) {
-        Add-GanttTaskRow -DataTable $table -Task $task -Logs $Logs -StartDate $StartDate -Days $Days -TodayText $todayText -SuppressWeekendScheduleHighlight $SuppressWeekendScheduleHighlight
+        Add-GanttTaskRow -DataTable $table -Task $task -Logs $Logs -StartDate $StartDate -Days $Days -TodayText $todayText
     }
 
     return ,$table.DefaultView

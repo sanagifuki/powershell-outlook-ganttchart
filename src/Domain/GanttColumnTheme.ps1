@@ -1,7 +1,8 @@
 function Get-GanttDateCellBackground {
     param(
         [datetime]$Date,
-        [string]$TodayText
+        [string]$TodayText,
+        [bool]$SuppressWeekendHighlight = $false
     )
 
     $dateText = $Date.ToString("yyyy/MM/dd")
@@ -13,6 +14,10 @@ function Get-GanttDateCellBackground {
         return $CLR_GANTT_TODAY_BG
     }
     if ($isWeekend) {
+        if ($SuppressWeekendHighlight) {
+            if ($isOddMonth) { return $CLR_GANTT_ODD_BG }
+            return $CLR_GANTT_EVEN_BG
+        }
         if ($isOddMonth) { return $CLR_GANTT_WE_ODD_BG }
         return $CLR_GANTT_WE_EVEN_BG
     }
@@ -26,7 +31,8 @@ function Get-GanttDateCellBackground {
 function Get-GanttDateHeaderTheme {
     param(
         [datetime]$Date,
-        [string]$TodayText
+        [string]$TodayText,
+        [bool]$SuppressWeekendHighlight = $false
     )
 
     $dateText = $Date.ToString("yyyy/MM/dd")
@@ -37,7 +43,7 @@ function Get-GanttDateHeaderTheme {
         $background = $CLR_GANTT_HDR_TODAY_BG
         $foreground = $CLR_GANTT_HDR_TODAY_FG
     }
-    elseif ($Date.Month % 2 -eq 1) {
+    elseif ($Date.Month % 2 -eq 1 -and -not ($SuppressWeekendHighlight -and ($Date.DayOfWeek -eq 'Saturday' -or $Date.DayOfWeek -eq 'Sunday'))) {
         $background = $CLR_GANTT_HDR_ODD_BG
     }
 

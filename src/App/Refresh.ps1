@@ -13,9 +13,7 @@ function Refresh-UI {
     $days = [int]($GanttDaysCombo.Text)
     if ($days -eq 0) { $days = 35 }
 
-    $suppressWeekendScheduleHighlight = ($ChkSuppressWeekendHighlight -and $ChkSuppressWeekendHighlight.IsChecked)
-
     Build-GanttColumns -startDate $startDate -days $days
-    $GridGantt.ItemsSource = ConvertTo-GanttDataView -Tasks $data.parsed -Logs $data.logs -StartDate $startDate -Days $days -SuppressWeekendScheduleHighlight $suppressWeekendScheduleHighlight
+    $GridGantt.ItemsSource = ConvertTo-GanttDataView -Tasks $data.parsed -Logs $data.logs -StartDate $startDate -Days $days
 }
 
