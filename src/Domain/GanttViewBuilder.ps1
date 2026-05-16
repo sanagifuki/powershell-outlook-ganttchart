@@ -49,77 +49,8 @@ function Build-GanttColumns {
         # Apply header style
         $col.HeaderStyle = New-GanttHeaderStyle -Background $headerTheme.Background -Foreground $headerTheme.Foreground
         
-        $cellStyleXaml = @"
-<Style TargetType="DataGridCell" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- WPFテーマのIsSelectedトリガーによる論理プロパティ上書きを完全遮断するための独立テンプレート -->
-    <Setter Property="Template">
-        <Setter.Value>
-            <ControlTemplate TargetType="DataGridCell">
-                <Border Background="{TemplateBinding Background}" 
-                        BorderThickness="{TemplateBinding BorderThickness}" 
-                        BorderBrush="{TemplateBinding BorderBrush}" 
-                        SnapsToDevicePixels="True">
-                    <ContentPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-                </Border>
-            </ControlTemplate>
-        </Setter.Value>
-    </Setter>
-    <Setter Property="Background" Value="$cellBg"/>
-    <Setter Property="BorderBrush" Value="Transparent"/>
-    <Setter Property="BorderThickness" Value="1"/>
-    <Style.Triggers>
-        
-        <!-- 枠線描画 -->
-        <Trigger Property="IsSelected" Value="True">
-            <Setter Property="BorderBrush" Value="$CLR_SELECTED_BORDER"/>
-        </Trigger>
-        
-        <DataTrigger Binding="{Binding [${dStr}_Bg]}" Value="$CLR_STA_OVERDUE_BG">
-            <Setter Property="Background" Value="$CLR_STA_OVERDUE_BG"/>
-        </DataTrigger>
-        <DataTrigger Binding="{Binding [${dStr}_Bg]}" Value="$CLR_STA_OVERDUE_ABS_BG">
-            <Setter Property="Background" Value="$CLR_STA_OVERDUE_ABS_BG"/>
-        </DataTrigger>
-        <DataTrigger Binding="{Binding [${dStr}_Bg]}" Value="$CLR_GANTT_PAST_BG">
-            <Setter Property="Background" Value="$CLR_GANTT_PAST_BG"/>
-        </DataTrigger>
-        
-        <!-- 記号の背景色 -->
-        <DataTrigger Binding="{Binding [${dStr}_Bg]}" Value="#FF9900">
-            <Setter Property="Background" Value="#FF9900"/>
-        </DataTrigger>
-        <DataTrigger Binding="{Binding [${dStr}_Bg]}" Value="#EA4335">
-            <Setter Property="Background" Value="#EA4335"/>
-        </DataTrigger>
-        <DataTrigger Binding="{Binding [${dStr}_Bg]}" Value="$CLR_ROW_DISPLAY">
-            <Setter Property="Background" Value="$CLR_ROW_DISPLAY"/>
-        </DataTrigger>
-    </Style.Triggers>
-</Style>
-"@
-        $col.CellStyle = [System.Windows.Markup.XamlReader]::Parse($cellStyleXaml)
-
-        # Style definition for dynamic Gantt cells (ToolTip via DataTemplate)
-        $templateXaml = @"
-<DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-    <Grid Background="Transparent" ToolTipService.IsEnabled="{Binding [${dStr}_Vis]}">
-        <Grid.ToolTip>
-            <ToolTip>
-                <TextBlock Text="{Binding [${dStr}_TT]}" TextWrapping="Wrap" MaxWidth="300" />
-            </ToolTip>
-        </Grid.ToolTip>
-        <TextBlock Text="{Binding [$dStr]}" 
-                   HorizontalAlignment="Center" VerticalAlignment="Center" 
-                   FontWeight="Bold" FontSize="11" Foreground="$CLR_SYMBOL_FG" FontFamily="$FONT_GANTT"/>
-        <!-- Combined Info Mark (Top-Right Blue) -->
-        <Polygon Points="7,0 7,7 0,0" Fill="#0078D7" HorizontalAlignment="Right" VerticalAlignment="Top" 
-                 Visibility="{Binding [${dStr}_InfoVis]}"/>
-    </Grid>
-</DataTemplate>
-"@
-        # テンプレート適用
-        $col.CellTemplate = [System.Windows.Markup.XamlReader]::Parse($templateXaml)
+        $col.CellStyle = New-GanttDateCellStyle -DateText $dStr -CellBackground $cellBg
+        $col.CellTemplate = New-GanttDateCellTemplate -DateText $dStr
         $GridGantt.Columns.Add($col)
     }
 }
