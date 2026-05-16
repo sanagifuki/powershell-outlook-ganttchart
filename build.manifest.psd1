@@ -10,6 +10,7 @@
         'src/Domain/GanttTaskFilter.ps1'
         'src/Domain/GanttTableBuilder.ps1'
         'src/Infrastructure/JsonStore.ps1'
+        'src/Infrastructure/OutlookClient.ps1'
         'src/Infrastructure/DataStore.ps1'
         'src/UI/MainWindow.ps1'
         'src/Shared/WpfUtils.ps1'

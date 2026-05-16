@@ -3,49 +3,11 @@ $BtnSync.Add_Click({
         $BtnSync.IsEnabled = $false
         $BtnSync.Content = "同期中..."
         try {
-            $outlook = New-Object -ComObject Outlook.Application
-            $namespace = $outlook.GetNamespace("MAPI")
-        
-            $calendar = $null
-            $syncedAccount = "" # ★同期したアカウント名を保持する変数を追加
-
-            # 先頭でメアドが指定されているかチェック
-            if (-not [string]::IsNullOrWhiteSpace($TARGET_OUTLOOK_EMAIL)) {
-                $targetStore = $null
-                foreach ($store in $namespace.Stores) {
-                    if ($store.DisplayName -eq $TARGET_OUTLOOK_EMAIL) {
-                        $targetStore = $store
-                        break
-                    }
-                }
-                if ($null -eq $targetStore) {
-                    throw "指定したアカウント（$TARGET_OUTLOOK_EMAIL）が見つかりません。"
-                }
-                $calendar = $targetStore.GetDefaultFolder(9)
-                $syncedAccount = $targetStore.DisplayName # 指定したメアドを記録
-            }
-            else {
-                # 指定がない場合は既定のアカウントを取得
-                $calendar = $namespace.GetDefaultFolder(9)
-                $syncedAccount = $calendar.Store.DisplayName # 既定アカウントのメアドを自動取得
-            }
-
-            $items = $calendar.Items
-            $items.IncludeRecurrences = $true
-            $items.Sort("[開始]")
-        
-            $filter = "[Start] >= '$((Get-Date).AddMonths(-36).ToString("MM/dd/yyyy"))' AND [End] <= '$((Get-Date).AddMonths(36).ToString("MM/dd/yyyy"))'"
-            $count = 0
-            $tasks = foreach ($item in $items.Restrict($filter)) {
-                if ($item -isnot [System.__ComObject]) { continue }
-                $count++
-                [PSCustomObject]@{ uid = $item.EntryID; title = $item.Subject; start = $item.Start.ToString("yyyy/MM/dd"); end = if ($item.AllDayEvent) { $item.End.AddDays(-1).ToString("yyyy/MM/dd") }else { $item.End.ToString("yyyy/MM/dd") }; startTime = if ($item.AllDayEvent) { "" }else { $item.Start.ToString("HH:mm") }; endTime = if ($item.AllDayEvent) { "" }else { $item.End.ToString("HH:mm") }; memo = (Format-Memo $item.Body); categories = $item.Categories }
-            }
-            Write-JsonData -Path $TasksFile -Data $tasks
+            $syncData = Get-OutlookScheduleSyncData -TargetEmail $TARGET_OUTLOOK_EMAIL
+            Write-JsonData -Path $TasksFile -Data $syncData.Tasks
             Refresh-UI
         
-            # ★ここで下のステータスバーに同期したアカウント名を表示します！
-            Show-Toast "同期完了 ($count 件) - アカウント: $syncedAccount"
+            Show-Toast "同期完了 ($($syncData.Count) 件) - アカウント: $($syncData.Account)"
         }
         catch {
             $msg = $_.Exception.Message
