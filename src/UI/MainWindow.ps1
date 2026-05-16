@@ -341,27 +341,32 @@
 </Window>
 "@
 
-$reader = (New-Object System.Xml.XmlNodeReader $xaml)
-$Form = [System.Windows.Markup.XamlReader]::Load($reader)
+function New-MainWindow {
+    param([xml]$Xaml)
 
-# Define controls
-$BtnAddAppt = $Form.FindName("BtnAddAppt")
-$BtnSync = $Form.FindName("BtnSync")
-$GanttDatePicker = $Form.FindName("GanttDatePicker")
-$GanttDaysCombo = $Form.FindName("GanttDaysCombo")
-$BtnResetView = $Form.FindName("BtnResetView")
-$ChkLogMode = $Form.FindName("ChkLogMode")
-$BtnHelp = $Form.FindName("BtnHelp")
-$GridSync = $Form.FindName("GridSync")
-$GridGantt = $Form.FindName("GridGantt")
-$GridLogs = $Form.FindName("GridLogs")
-$StatusMsg = $Form.FindName("StatusMsg")
+    $reader = (New-Object System.Xml.XmlNodeReader $Xaml)
+    [System.Windows.Markup.XamlReader]::Load($reader)
+}
 
-# Set Default Dates
+function Initialize-MainWindowControls {
+    param($Window)
+
+    $script:BtnAddAppt = $Window.FindName("BtnAddAppt")
+    $script:BtnSync = $Window.FindName("BtnSync")
+    $script:GanttDatePicker = $Window.FindName("GanttDatePicker")
+    $script:GanttDaysCombo = $Window.FindName("GanttDaysCombo")
+    $script:BtnResetView = $Window.FindName("BtnResetView")
+    $script:ChkLogMode = $Window.FindName("ChkLogMode")
+    $script:BtnHelp = $Window.FindName("BtnHelp")
+    $script:GridSync = $Window.FindName("GridSync")
+    $script:GridGantt = $Window.FindName("GridGantt")
+    $script:GridLogs = $Window.FindName("GridLogs")
+    $script:StatusMsg = $Window.FindName("StatusMsg")
+}
+
+$Form = New-MainWindow -Xaml $xaml
+Initialize-MainWindowControls -Window $Form
+
 $GanttDatePicker.SelectedDate = (Get-Date).AddDays(-7)
-
-# --- Button Events ---
-$BtnAddAppt.Add_Click({
-    Invoke-AddAppointmentForm
-})
+$BtnAddAppt.Add_Click({ Invoke-AddAppointmentForm })
 
