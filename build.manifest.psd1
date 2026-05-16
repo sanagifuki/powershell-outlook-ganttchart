@@ -22,7 +22,7 @@
         'src/UI/Dialogs/AddAppointmentDialog.ps1'
         'src/UI/Dialogs/TextViewDialog.ps1'
         'src/UI/Dialogs/LogDialog.ps1'
-        'src/Domain/GanttViewBuilder.ps1'
+        'src/UI/GanttViewBuilder.ps1'
         'src/App/Refresh.ps1'
         'src/App/EventHandlers.ps1'
         'src/App/Events.ps1'
