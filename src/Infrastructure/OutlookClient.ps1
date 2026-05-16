@@ -66,3 +66,37 @@ function Get-OutlookScheduleSyncData {
     }
 }
 
+function Add-OutlookAppointment {
+    param(
+        [string]$Subject,
+        [string]$Body,
+        [datetime]$StartDate,
+        [datetime]$EndDate,
+        [bool]$IsTimed,
+        [string]$StartTime,
+        [string]$EndTime
+    )
+
+    $outlook = New-Object -ComObject Outlook.Application
+    $appointment = $outlook.CreateItem(1)
+
+    $appointment.Subject = $Subject
+    $appointment.Body = $Body
+    $appointment.BusyStatus = 0
+    $appointment.Sensitivity = 2
+    $appointment.ReminderSet = $false
+
+    if ($IsTimed) {
+        $appointment.AllDayEvent = $false
+        $appointment.Start = $StartDate.ToString("yyyy/MM/dd ") + $StartTime
+        $appointment.End = $StartDate.ToString("yyyy/MM/dd ") + $EndTime
+    }
+    else {
+        $appointment.AllDayEvent = $true
+        $appointment.Start = $StartDate.ToString("yyyy/MM/dd 00:00:00")
+        $appointment.End = $EndDate.AddDays(1).ToString("yyyy/MM/dd 00:00:00")
+    }
+
+    $appointment.Save()
+}
+

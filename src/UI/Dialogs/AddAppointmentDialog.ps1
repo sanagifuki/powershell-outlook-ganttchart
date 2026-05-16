@@ -204,17 +204,6 @@ function Invoke-AddAppointmentForm {
             $category = $comboCat.Text
             $formattedTitle = "$symbol［$category］$($txtTitle.Text)"
 
-            $outlook = New-Object -ComObject Outlook.Application
-            $appt = $outlook.CreateItem(1) # olAppointmentItem
-
-            $appt.Subject = $formattedTitle
-            $appt.Body = $txtMemo.Text
-            
-            # デフォルトプロパティ設定
-            $appt.BusyStatus  = 0     # 0: olFree (空き時間)
-            $appt.Sensitivity = 2     # 2: olPrivate (非公開)
-            $appt.ReminderSet = $false # アラームなし
-            
             $sDate = $dateStart.SelectedDate
             $eDate = $dateEnd.SelectedDate
 
@@ -228,17 +217,9 @@ function Invoke-AddAppointmentForm {
                     [System.Windows.MessageBox]::Show("終了時間の形式が正しくありません（例 10:00）", "形式エラー", "OK", "Warning")
                     return
                 }
-                $appt.AllDayEvent = $false
-                $appt.Start = $sDate.ToString("yyyy/MM/dd ") + $timeStart.Text
-                $appt.End   = $sDate.ToString("yyyy/MM/dd ") + $timeEnd.Text # 予定日は同日固定
-            } else {
-                # それ以外 : 終日=True
-                $appt.AllDayEvent = $true
-                $appt.Start = $sDate.ToString("yyyy/MM/dd 00:00:00")
-                $appt.End   = $eDate.AddDays(1).ToString("yyyy/MM/dd 00:00:00")
             }
 
-            $appt.Save()
+            Add-OutlookAppointment -Subject $formattedTitle -Body $txtMemo.Text -StartDate $sDate -EndDate $eDate -IsTimed $isTimed -StartTime $timeStart.Text -EndTime $timeEnd.Text
             Show-Toast "Outlookに予定を追加しました: $formattedTitle"
             $window.Close()
         } catch {
