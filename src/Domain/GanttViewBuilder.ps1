@@ -1,57 +1,60 @@
+function Add-GanttFixedColumns {
+    $fixedCellStyle = New-GanttFixedCellStyle
+
+    $statusColumn = New-Object System.Windows.Controls.DataGridTemplateColumn
+    $statusColumn.Header = "ステータス"
+    $statusColumn.Width = $COL_WIDTH_STATUS
+    $statusColumn.CellTemplate = $Form.Resources["BadgeStatusTemplate"]
+    $statusColumn.CellStyle = $fixedCellStyle
+    $GridGantt.Columns.Add($statusColumn)
+
+    $categoryColumn = New-Object System.Windows.Controls.DataGridTemplateColumn
+    $categoryColumn.Header = "分類"
+    $categoryColumn.Width = $COL_WIDTH_CAT
+    $categoryColumn.CellTemplate = $Form.Resources["BadgeCategoryTemplate"]
+    $categoryColumn.CellStyle = $fixedCellStyle
+    $GridGantt.Columns.Add($categoryColumn)
+
+    $titleColumn = New-Object System.Windows.Controls.DataGridTemplateColumn
+    $titleColumn.Header = "スケジュール名"
+    $titleColumn.SortMemberPath = "スケジュール名"
+    $titleColumn.Width = $COL_WIDTH_TITLE
+    $titleColumn.CellStyle = $fixedCellStyle
+    $titleColumn.HeaderStyle = New-GanttHeaderStyle -Background $CLR_TITLE_CELL_BG
+    $titleColumn.CellTemplate = New-GanttTitleCellTemplate
+    $GridGantt.Columns.Add($titleColumn)
+}
+
+function Add-GanttDateColumn {
+    param(
+        [datetime]$Date,
+        [string]$TodayText
+    )
+
+    $dateText = $Date.ToString("yyyy/MM/dd")
+    $cellBackground = Get-GanttDateCellBackground -Date $Date -TodayText $TodayText
+    $headerTheme = Get-GanttDateHeaderTheme -Date $Date -TodayText $TodayText
+
+    $column = New-Object System.Windows.Controls.DataGridTemplateColumn
+    $column.Header = $Date.ToString("d`n(ddd)")
+    $column.SortMemberPath = $dateText
+    $column.HeaderStyle = New-GanttHeaderStyle -Background $headerTheme.Background -Foreground $headerTheme.Foreground
+    $column.CellStyle = New-GanttDateCellStyle -DateText $dateText -CellBackground $cellBackground
+    $column.CellTemplate = New-GanttDateCellTemplate -DateText $dateText
+
+    $GridGantt.Columns.Add($column)
+}
+
 function Build-GanttColumns {
     param($startDate, $days)
-    
+
     $GridGantt.Columns.Clear()
-    
-    $fixedCellStyle = New-GanttFixedCellStyle
-    
-    # 1. ステータス
-    $col1 = New-Object System.Windows.Controls.DataGridTemplateColumn
-    $col1.Header = "ステータス"
-    $col1.Width = $COL_WIDTH_STATUS
-    $col1.CellTemplate = $Form.Resources["BadgeStatusTemplate"]
-    $col1.CellStyle = $fixedCellStyle
-    $GridGantt.Columns.Add($col1)
-    
-    # 2. 分類
-    $col2 = New-Object System.Windows.Controls.DataGridTemplateColumn
-    $col2.Header = "分類"
-    $col2.Width = $COL_WIDTH_CAT
-    $col2.CellTemplate = $Form.Resources["BadgeCategoryTemplate"]
-    $col2.CellStyle = $fixedCellStyle
-    $GridGantt.Columns.Add($col2)
-    
-    # 3. スケジュール名
-    $col3 = New-Object System.Windows.Controls.DataGridTemplateColumn
-    $col3.Header = "スケジュール名"
-    $col3.SortMemberPath = "スケジュール名"
-    $col3.Width = $COL_WIDTH_TITLE
-    $col3.CellStyle = $fixedCellStyle
-    # ヘッダー設定（同期タブと統一）
-    $col3.HeaderStyle = New-GanttHeaderStyle -Background $CLR_TITLE_CELL_BG
+    Add-GanttFixedColumns
 
-    $col3.CellTemplate = New-GanttTitleCellTemplate
-    $GridGantt.Columns.Add($col3)
-    
-    $todayStr = (Get-Date).ToString("yyyy/MM/dd")
+    $todayText = (Get-Date).ToString("yyyy/MM/dd")
 
-    # 日付カラム追加
     for ($i = 0; $i -lt $days; $i++) {
-        $d = $startDate.AddDays($i)
-        $dStr = $d.ToString("yyyy/MM/dd")
-        $cellBg = Get-GanttDateCellBackground -Date $d -TodayText $todayStr
-        $headerTheme = Get-GanttDateHeaderTheme -Date $d -TodayText $todayStr
-        
-        $col = New-Object System.Windows.Controls.DataGridTemplateColumn
-        $col.Header = $d.ToString("d`n(ddd)")
-        $col.SortMemberPath = $dStr
-        
-        # Apply header style
-        $col.HeaderStyle = New-GanttHeaderStyle -Background $headerTheme.Background -Foreground $headerTheme.Foreground
-        
-        $col.CellStyle = New-GanttDateCellStyle -DateText $dStr -CellBackground $cellBg
-        $col.CellTemplate = New-GanttDateCellTemplate -DateText $dStr
-        $GridGantt.Columns.Add($col)
+        Add-GanttDateColumn -Date ($startDate.AddDays($i)) -TodayText $todayText
     }
 }
 
