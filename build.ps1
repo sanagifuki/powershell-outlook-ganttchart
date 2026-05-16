@@ -10,6 +10,13 @@ $repoRoot = Split-Path -Parent $ManifestPath
 $builder = [System.Text.StringBuilder]::new()
 [void]$builder.AppendLine('# Auto-generated from src/*.ps1 by build.ps1.')
 [void]$builder.AppendLine('# Edit files under src/ instead of this generated file.')
+try {
+    $commit = git -C $repoRoot rev-parse --short HEAD
+    [void]$builder.AppendLine("# Source commit: $commit")
+}
+catch {
+    [void]$builder.AppendLine('# Source commit: unknown')
+}
 [void]$builder.AppendLine()
 
 foreach ($relativePath in $manifest.SourceFiles) {
