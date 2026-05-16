@@ -26,6 +26,14 @@ Outlook の予定を取得し、作業ログと合わせてガントチャート
 .\build.ps1 -OutputPath .\OutlookGantt.ps1
 ```
 
+## テスト
+
+UIやOutlook実体を起動しない範囲の軽いロジック確認を行う。
+
+```powershell
+.\test.ps1
+```
+
 ## 構成
 
 - `src/App/`: 起動、イベント、画面更新。
