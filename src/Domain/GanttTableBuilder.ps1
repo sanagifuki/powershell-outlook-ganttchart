@@ -7,6 +7,8 @@ function New-GanttDataTable {
     $table = New-Object System.Data.DataTable
     [void]$table.Columns.Add("ステータス")
     [void]$table.Columns.Add("分類")
+    [void]$table.Columns.Add("分類背景")
+    [void]$table.Columns.Add("分類文字色")
     [void]$table.Columns.Add("スケジュール名")
     [void]$table.Columns.Add("メモ")
     [void]$table.Columns.Add("OriginalTask", [object])
@@ -38,6 +40,8 @@ function Add-GanttTaskRow {
     $row = $DataTable.NewRow()
     $row["ステータス"] = $Task.ステータス
     $row["分類"] = $Task.分類
+    $row["分類背景"] = $Task.分類背景
+    $row["分類文字色"] = $Task.分類文字色
     $row["スケジュール名"] = $Task.タイトル
     $row["メモ"] = $Task.メモ
     $row["OriginalTask"] = $Task

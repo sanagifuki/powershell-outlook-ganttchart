@@ -104,6 +104,8 @@ $task = [PSCustomObject]@{
     uid = '1'
     ステータス = '未着手'
     分類 = '調査'
+    分類背景 = '#E9D5FF'
+    分類文字色 = '#6B21A8'
     タイトル = '予定A'
     メモ = 'memo'
     期限タイプ = '予定日'
@@ -126,6 +128,8 @@ $view = ConvertTo-GanttDataView -Tasks @($task) -Logs $logs -StartDate ([datetim
 Assert-Equal $view.Count 1 'Gantt view row count failed.'
 $row = $view[0].Row
 Assert-Equal $row['スケジュール名'] '予定A' 'Gantt row title failed.'
+Assert-Equal $row['分類背景'] '#E9D5FF' 'Gantt row category background failed.'
+Assert-Equal $row['分類文字色'] '#6B21A8' 'Gantt row category foreground failed.'
 Assert-Equal $row['2026/05/16'] '▶' 'Gantt row date symbol failed.'
 $suppressedView = ConvertTo-GanttDataView -Tasks @($task) -Logs $logs -StartDate ([datetime]'2026-05-16') -Days 1 -BaseDate ([datetime]'2026-05-16') -SuppressWeekendScheduleHighlight $true
 Assert-Equal $suppressedView[0].Row['2026/05/16_Bg'] 'Transparent' 'Weekend schedule highlight suppression failed.'
