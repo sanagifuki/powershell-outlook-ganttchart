@@ -14,6 +14,12 @@ Outlook の予定を取得し、作業ログと合わせてガントチャート
 
 開発実行時の `schedules.json` / `logs.json` はリポジトリルートを基準に読む。
 
+Outlook に動作確認用の予定を追加する場合は、次を実行する。
+
+```powershell
+.\tools\add-test-schedules.ps1
+```
+
 分類を調整したい場合は、リポジトリルートまたは単一ファイルと同じフォルダの `categories.json` を編集する。
 未配置の場合は、初回読み込み時に内蔵の既定分類から自動生成する。
 
