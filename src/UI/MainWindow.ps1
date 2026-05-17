@@ -2,7 +2,7 @@
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="スケジュール管理システム" Height="600" Width="769" MinWidth="769" MinHeight="600"
-        Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="11"
+        Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_MAIN"
         WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <!-- Hide default selection background colors globally to ensure border-only selection -->
@@ -135,25 +135,37 @@
         </Grid.RowDefinitions>
         
         <Border Background="#FFFFFF" Padding="10,6" BorderThickness="0,0,0,1" BorderBrush="$CLR_BORDER">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Name="BtnAddAppt" Content="予定追加" Padding="12,4" Background="#34A853" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
-                <Button Name="BtnSync" Content="Outlook同期" Padding="12,4" Background="#1A73E8" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
-                <Button Name="BtnComplete" Content="完了登録" Padding="12,4" Background="#1f8d61" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
-                <TextBlock Text="ガント開始日:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
-                <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,5,0"/>
-                <TextBlock Text="表示日数:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
-                <ComboBox Name="GanttDaysCombo" Width="40" VerticalAlignment="Center">
-                    <ComboBoxItem Content="14"/>
-                    <ComboBoxItem Content="35"/>
-                    <ComboBoxItem Content="60"/>
-                    <ComboBoxItem Content="90"/>
-                    <ComboBoxItem Content="120"/>
-                </ComboBox>
-                <Button Name="BtnResetView" Content="表示リセット" Width="90" Height="24" Margin="10,0,0,0" Background="#F5F5F5" BorderBrush="$CLR_BORDER" Cursor="Hand"/>
-                <CheckBox Name="ChkLogMode" Content="作業ログ入力モード" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#333333"/>
-                <CheckBox Name="ChkSuppressWeekendHighlight" Content="土日の予定色を抑制" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#333333"/>
-                <Button Name="BtnHelp" Content="？" Width="22" Height="22" Margin="10,0,0,0" Background="#F0F0F0" Foreground="#555555" BorderBrush="$CLR_BORDER" Cursor="Hand" ToolTip="留意事項を表示します"/>
-            </StackPanel>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Name="ToolbarPrimaryGroup" Grid.Row="0" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <Button Name="BtnAddAppt" Content="予定追加" Padding="12,4" Background="#34A853" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+                    <Button Name="BtnSync" Content="Outlook同期" Padding="12,4" Background="#1A73E8" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+                    <Button Name="BtnComplete" Content="完了登録" Padding="12,4" Background="#1f8d61" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+                    <TextBlock Text="ガント開始日:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
+                    <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="表示日数:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
+                    <ComboBox Name="GanttDaysCombo" Width="40" VerticalAlignment="Center">
+                        <ComboBoxItem Content="14"/>
+                        <ComboBoxItem Content="35"/>
+                        <ComboBoxItem Content="60"/>
+                        <ComboBoxItem Content="90"/>
+                        <ComboBoxItem Content="120"/>
+                    </ComboBox>
+                    <Button Name="BtnResetView" Content="表示リセット" Width="90" Height="24" Margin="10,0,0,0" Background="#F5F5F5" BorderBrush="$CLR_BORDER" Cursor="Hand"/>
+                </StackPanel>
+                <StackPanel Name="ToolbarSecondaryGroup" Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0">
+                    <CheckBox Name="ChkLogMode" Content="作業ログ入力モード" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#333333" ToolTip="作業ログ入力モード"/>
+                    <CheckBox Name="ChkSuppressWeekendHighlight" Content="土日の予定色を抑制" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#333333" ToolTip="土日の予定色を抑制"/>
+                    <Button Name="BtnHelp" Content="？" Width="22" Height="22" Background="#F0F0F0" Foreground="#555555" BorderBrush="$CLR_BORDER" Cursor="Hand" ToolTip="留意事項を表示します"/>
+                </StackPanel>
+            </Grid>
         </Border>
         
         <TabControl Name="MainTab" Grid.Row="1" Background="Transparent" BorderThickness="1" BorderBrush="$CLR_BORDER" Margin="6" Padding="0">
@@ -327,6 +339,10 @@
 </Window>
 "@
 
+$script:AppSettings = Get-AppSettings
+Apply-AppFontSettings -Settings $AppSettings
+$xaml = [xml]($xaml.OuterXml -replace 'Noto Sans JP, Meiryo, Yu Gothic UI', $FONT_MAIN)
+
 function New-MainWindow {
     param([xml]$Xaml)
 
@@ -345,6 +361,7 @@ function Initialize-MainWindowControls {
     $script:BtnResetView = $Window.FindName("BtnResetView")
     $script:ChkLogMode = $Window.FindName("ChkLogMode")
     $script:ChkSuppressWeekendHighlight = $Window.FindName("ChkSuppressWeekendHighlight")
+    $script:ToolbarSecondaryGroup = $Window.FindName("ToolbarSecondaryGroup")
     $script:BtnHelp = $Window.FindName("BtnHelp")
     $script:GridSync = $Window.FindName("GridSync")
     $script:GridGantt = $Window.FindName("GridGantt")
@@ -355,7 +372,6 @@ function Initialize-MainWindowControls {
 $Form = New-MainWindow -Xaml $xaml
 Initialize-MainWindowControls -Window $Form
 
-$script:AppSettings = Get-AppSettings
 Restore-WindowPlacement -Window $Form -Settings $AppSettings
 $GanttDatePicker.SelectedDate = (Get-Date).AddDays([int]$AppSettings.ganttStartOffsetDays)
 Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content ([string]$AppSettings.ganttDefaultDays)

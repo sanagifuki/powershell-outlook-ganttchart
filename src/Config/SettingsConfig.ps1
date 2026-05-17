@@ -18,6 +18,11 @@ function Get-DefaultAppSettings {
         windowMinHeight = 420
         windowLeft = $null
         windowTop = $null
+        fontMain = "Noto Sans JP, Meiryo, Yu Gothic UI"
+        fontGantt = "Yu Gothic"
+        fontSizeMain = 11
+        fontSizeDialog = 11
+        fontSizeGantt = 11
     }
 }
 
@@ -119,6 +124,26 @@ function Save-WindowPlacement {
     $Settings.windowLeft = [int][Math]::Round($Window.RestoreBounds.Left)
     $Settings.windowTop = [int][Math]::Round($Window.RestoreBounds.Top)
     Save-AppSettings -Settings $Settings
+}
+
+function Apply-AppFontSettings {
+    param($Settings)
+
+    if (-not [string]::IsNullOrWhiteSpace($Settings.fontMain)) {
+        $script:FONT_MAIN = [string]$Settings.fontMain
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Settings.fontGantt)) {
+        $script:FONT_GANTT = [string]$Settings.fontGantt
+    }
+    if ($Settings.fontSizeMain -and [double]$Settings.fontSizeMain -gt 0) {
+        $script:FONT_SIZE_MAIN = [double]$Settings.fontSizeMain
+    }
+    if ($Settings.fontSizeDialog -and [double]$Settings.fontSizeDialog -gt 0) {
+        $script:FONT_SIZE_DIALOG = [double]$Settings.fontSizeDialog
+    }
+    if ($Settings.fontSizeGantt -and [double]$Settings.fontSizeGantt -gt 0) {
+        $script:FONT_SIZE_GANTT = [double]$Settings.fontSizeGantt
+    }
 }
 
 function Select-ComboBoxItemByContent {

@@ -51,6 +51,11 @@ function Get-HelpText {
 　- windowWidth / windowHeight：ウィンドウ幅/高さ。
 　- windowMinWidth / windowMinHeight：ウィンドウを小さくできる最小幅/高さ。
 　- windowLeft / windowTop：ウィンドウ位置。画面外になりそうな場合は中央表示に戻ります。
+　- fontMain：画面全体で使うメインフォント。
+　- fontGantt：ガントチャートの日付セル記号で使うフォント。
+　- fontSizeMain：メイン画面の基本フォントサイズ。
+　- fontSizeDialog：ヘルプや入力ダイアログの基本フォントサイズ。
+　- fontSizeGantt：ガントチャートの日付セル記号のフォントサイズ。
 ・categories.json：分類名と分類バッジ色を管理します。ファイルがない場合は初回読み込み時に自動生成されます。
 　- name：分類名。
 　- background：分類バッジの背景色。

@@ -41,7 +41,12 @@ Outlook の予定を取得し、作業ログと合わせてガントチャート
   "windowMinWidth": 825,
   "windowMinHeight": 420,
   "windowLeft": null,
-  "windowTop": null
+  "windowTop": null,
+  "fontMain": "Noto Sans JP, Meiryo, Yu Gothic UI",
+  "fontGantt": "Yu Gothic",
+  "fontSizeMain": 11,
+  "fontSizeDialog": 11,
+  "fontSizeGantt": 11
 }
 ```
 

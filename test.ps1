@@ -67,6 +67,11 @@ Assert-Equal $settings.addAppointmentTypeDefaultSymbol '◆' 'Default appointmen
 Assert-Equal $settings.rememberWindowPlacement $true 'Default window placement setting failed.'
 Assert-Equal $settings.windowWidth 769 'Default window width setting failed.'
 Assert-Equal $settings.windowMinWidth 825 'Default window minimum width setting failed.'
+Assert-Equal $settings.fontMain 'Noto Sans JP, Meiryo, Yu Gothic UI' 'Default main font setting failed.'
+Assert-Equal $settings.fontGantt 'Yu Gothic' 'Default gantt font setting failed.'
+Assert-Equal $settings.fontSizeMain 11 'Default main font size setting failed.'
+Assert-Equal $settings.fontSizeDialog 11 'Default dialog font size setting failed.'
+Assert-Equal $settings.fontSizeGantt 11 'Default gantt font size setting failed.'
 
 Assert-Equal (Format-AppointmentTitle -Symbol '▶' -Category '業務' -Title '確認') '▶［業務］確認' 'Appointment title format failed.'
 Assert-True (Test-TimeText -Text '09:00') 'Valid time should pass.'

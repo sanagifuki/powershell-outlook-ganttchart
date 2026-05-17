@@ -107,7 +107,7 @@ function New-GanttDateCellTemplate {
         </Grid.ToolTip>
         <TextBlock Text="{Binding [$DateText]}" 
                    HorizontalAlignment="Center" VerticalAlignment="Center" 
-                   FontWeight="Bold" FontSize="11" Foreground="$CLR_SYMBOL_FG" FontFamily="$FONT_GANTT"/>
+                   FontWeight="Bold" FontSize="$FONT_SIZE_GANTT" Foreground="$CLR_SYMBOL_FG" FontFamily="$FONT_GANTT"/>
         <!-- Combined Info Mark (Top-Right Blue) -->
         <Polygon Points="7,0 7,7 0,0" Fill="#0078D7" HorizontalAlignment="Right" VerticalAlignment="Top" 
                  Visibility="{Binding [${DateText}_InfoVis]}"/>

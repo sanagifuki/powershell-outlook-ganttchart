@@ -4,7 +4,7 @@ function Invoke-ViewForm {
     <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
             Title="詳細" Height="500" Width="650"
-            WindowStartupLocation="CenterOwner" Background="#F0F0F0" FontFamily="Noto Sans JP" FontSize="12"
+            WindowStartupLocation="CenterOwner" Background="#F0F0F0" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
             ResizeMode="CanResizeWithGrip">
         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="16">
             <TextBlock Name="txtView" TextWrapping="Wrap" Foreground="#333333" LineHeight="20"/>

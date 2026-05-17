@@ -11,7 +11,7 @@ function Invoke-CompleteSchedulePicker {
     <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
             Title="スケジュール完了" Height="190" Width="520"
-            Background="#F5F5F5" Foreground="#333333" FontFamily="Noto Sans JP" FontSize="12"
+            Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
             WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
         <Grid Margin="14">
             <Grid.RowDefinitions>
