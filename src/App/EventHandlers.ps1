@@ -53,7 +53,7 @@ function Handle-GanttGridDoubleClick {
             else {
                 $memo = $item["メモ"]
                 if (-not [string]::IsNullOrWhiteSpace($memo)) {
-                    Invoke-ViewForm -title "メモ - $title" -text $memo
+                    Invoke-ViewForm -title "メモ - $title" -text $memo -Width 350 -Height 320
                 }
             }
         }
@@ -67,7 +67,7 @@ function Handle-GanttGridDoubleClick {
 
         $text = $item["${dateText}_TT"]
         if (-not [string]::IsNullOrWhiteSpace($text)) {
-            Invoke-ViewForm -title "作業ログ ($dateText) - $title" -text $text
+            Invoke-ViewForm -title "作業ログ ($dateText) - $title" -text $text -Width 350 -Height 320
         }
     }
 }

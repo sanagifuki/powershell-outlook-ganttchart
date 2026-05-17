@@ -1,9 +1,16 @@
 function Invoke-ViewForm {
-    param($title, $text)
+    param(
+        $title,
+        $text,
+        [int]$Width = 650,
+        [int]$Height = 500,
+        [int]$MinWidth = 320,
+        [int]$MinHeight = 300
+    )
     [xml]$vXaml = @"
     <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            Title="詳細" Height="500" Width="650"
+            Title="詳細" Height="$Height" Width="$Width" MinWidth="$MinWidth" MinHeight="$MinHeight"
             WindowStartupLocation="CenterOwner" Background="#F0F0F0" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
             ResizeMode="CanResizeWithGrip">
         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="16">
