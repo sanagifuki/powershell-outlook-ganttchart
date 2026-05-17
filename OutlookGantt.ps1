@@ -1,6 +1,6 @@
 # Auto-generated from src/*.ps1 by build.ps1.
 # Edit files under src/ instead of this generated file.
-# Source commit: 799e94c
+# Source commit: b7e03e0
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Drawing
@@ -1144,7 +1144,7 @@ function Get-AllData {
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="スケジュール管理システム" Height="600" Width="769" MinWidth="769" MinHeight="600"
         Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_MAIN"
-        WindowStartupLocation="CenterScreen">
+        TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <!-- Hide default selection background colors globally to ensure border-only selection -->
         <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Transparent"/>
@@ -1722,7 +1722,7 @@ function New-AddAppointmentWindow {
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Outlook予定追加" Width="420" SizeToContent="Height"
-        WindowStartupLocation="CenterScreen" Background="#F5F5F5" ResizeMode="NoResize">
+        TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterScreen" Background="#F5F5F5" ResizeMode="NoResize">
     <Window.Resources>
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="#666666"/>
@@ -2011,7 +2011,7 @@ function Invoke-ViewForm {
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
             Title="詳細" Height="$Height" Width="$Width" MinWidth="$MinWidth" MinHeight="$MinHeight"
             WindowStartupLocation="CenterOwner" Background="#F0F0F0" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
-            ResizeMode="CanResizeWithGrip">
+            TextOptions.TextRenderingMode="ClearType" ResizeMode="CanResizeWithGrip">
         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="16">
             <TextBlock Name="txtView" TextWrapping="Wrap" Foreground="#333333" LineHeight="20"/>
         </ScrollViewer>
@@ -2033,7 +2033,7 @@ function New-LogWindow {
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
             Title="ログ入力: $($Task.タイトル -replace '&','&amp;')" Height="320" Width="350"
             Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
-            WindowStartupLocation="CenterOwner" ResizeMode="CanResize" MinWidth="320" MinHeight="300">
+            TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterOwner" ResizeMode="CanResize" MinWidth="320" MinHeight="300">
         <Grid Margin="12,8,12,12">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -2130,7 +2130,7 @@ function Invoke-CompleteSchedulePicker {
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
             Title="スケジュール完了" Height="190" Width="520"
             Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
-            WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+            TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
         <Grid Margin="14">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>

@@ -12,7 +12,7 @@ function Invoke-ViewForm {
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
             Title="詳細" Height="$Height" Width="$Width" MinWidth="$MinWidth" MinHeight="$MinHeight"
             WindowStartupLocation="CenterOwner" Background="#F0F0F0" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
-            ResizeMode="CanResizeWithGrip">
+            TextOptions.TextRenderingMode="ClearType" ResizeMode="CanResizeWithGrip">
         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="16">
             <TextBlock Name="txtView" TextWrapping="Wrap" Foreground="#333333" LineHeight="20"/>
         </ScrollViewer>

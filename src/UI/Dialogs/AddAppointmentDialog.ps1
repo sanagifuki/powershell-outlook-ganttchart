@@ -3,7 +3,7 @@ function New-AddAppointmentWindow {
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Outlook予定追加" Width="420" SizeToContent="Height"
-        WindowStartupLocation="CenterScreen" Background="#F5F5F5" ResizeMode="NoResize">
+        TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterScreen" Background="#F5F5F5" ResizeMode="NoResize">
     <Window.Resources>
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="#666666"/>

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="スケジュール管理システム" Height="600" Width="769" MinWidth="769" MinHeight="600"
         Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_MAIN"
-        WindowStartupLocation="CenterScreen">
+        TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <!-- Hide default selection background colors globally to ensure border-only selection -->
         <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Transparent"/>

@@ -6,7 +6,7 @@ function New-LogWindow {
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
             Title="ログ入力: $($Task.タイトル -replace '&','&amp;')" Height="320" Width="350"
             Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
-            WindowStartupLocation="CenterOwner" ResizeMode="CanResize" MinWidth="320" MinHeight="300">
+            TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterOwner" ResizeMode="CanResize" MinWidth="320" MinHeight="300">
         <Grid Margin="12,8,12,12">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
