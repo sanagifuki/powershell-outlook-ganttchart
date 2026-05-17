@@ -36,6 +36,10 @@ $GridLogs.Add_MouseDoubleClick({
         Handle-LogsGridDoubleClick
     })
 
+$Form.Add_Closing({
+        Save-WindowPlacement -Window $Form -Settings $AppSettings
+    })
+
 # INITIAL LOAD
 Refresh-UI
 $Form.ShowDialog()

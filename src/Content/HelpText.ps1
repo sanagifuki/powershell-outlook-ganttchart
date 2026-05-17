@@ -47,6 +47,10 @@ function Get-HelpText {
 　- addAppointmentShowAsFreeDefault：予定追加時、「空き時間として表示」を初期ONにするか。
 　- addAppointmentTypeDefaultSymbol：予定追加時の期限タイプ初期値。✕ / ◆ / ◇ / ▶ のいずれか。
 　- addAppointmentCategoryDefault：予定追加時の分類初期値。
+　- rememberWindowPlacement：終了時のウィンドウサイズ/位置を保存し、次回起動時に復元するか。
+　- windowWidth / windowHeight：ウィンドウ幅/高さ。
+　- windowMinWidth / windowMinHeight：ウィンドウを小さくできる最小幅/高さ。
+　- windowLeft / windowTop：ウィンドウ位置。画面外になりそうな場合は中央表示に戻ります。
 ・categories.json：分類名と分類バッジ色を管理します。ファイルがない場合は初回読み込み時に自動生成されます。
 　- name：分類名。
 　- background：分類バッジの背景色。

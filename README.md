@@ -34,7 +34,14 @@ Outlook の予定を取得し、作業ログと合わせてガントチャート
   "addAppointmentPrivateDefault": true,
   "addAppointmentShowAsFreeDefault": true,
   "addAppointmentTypeDefaultSymbol": "◆",
-  "addAppointmentCategoryDefault": "業務"
+  "addAppointmentCategoryDefault": "業務",
+  "rememberWindowPlacement": true,
+  "windowWidth": 769,
+  "windowHeight": 600,
+  "windowMinWidth": 825,
+  "windowMinHeight": 420,
+  "windowLeft": null,
+  "windowTop": null
 }
 ```
 

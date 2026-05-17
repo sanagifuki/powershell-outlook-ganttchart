@@ -356,6 +356,7 @@ $Form = New-MainWindow -Xaml $xaml
 Initialize-MainWindowControls -Window $Form
 
 $script:AppSettings = Get-AppSettings
+Restore-WindowPlacement -Window $Form -Settings $AppSettings
 $GanttDatePicker.SelectedDate = (Get-Date).AddDays([int]$AppSettings.ganttStartOffsetDays)
 Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content ([string]$AppSettings.ganttDefaultDays)
 if ($GanttDaysCombo.SelectedIndex -lt 0) { Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content "35" }
