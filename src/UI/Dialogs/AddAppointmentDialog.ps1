@@ -143,13 +143,21 @@ function Update-AddAppointmentTypeUi {
     )
 
     $selectedItem = $ComboType.SelectedItem
-    if ($null -ne $selectedItem -and $selectedItem.Tag -eq "▶") {
+    $isTimed = ($null -ne $selectedItem -and $selectedItem.Tag -eq "▶")
+    $isSingleDay = ($null -ne $selectedItem -and ($selectedItem.Tag -eq "▶" -or $selectedItem.Tag -eq "★"))
+
+    if ($isTimed) {
         $PanelTime.Visibility = [System.Windows.Visibility]::Visible
+    }
+    else {
+        $PanelTime.Visibility = [System.Windows.Visibility]::Collapsed
+    }
+
+    if ($isSingleDay) {
         $DateEnd.SelectedDate = $DateStart.SelectedDate
         $DateEnd.IsEnabled = $false
     }
     else {
-        $PanelTime.Visibility = [System.Windows.Visibility]::Collapsed
         $DateEnd.IsEnabled = $true
     }
 }
@@ -225,10 +233,10 @@ function Invoke-AddAppointmentForm {
         & $updateUIByType
     })
 
-    # 開始日が変更されたら予定日の場合は終了日も同期
+    # 単日扱い（予定日・参照用）の場合は終了日も同期
     $dateStart.Add_SelectedDateChanged({
         $selectedItem = $comboType.SelectedItem
-        if ($null -ne $selectedItem -and $selectedItem.Tag -eq "▶") {
+        if ($null -ne $selectedItem -and ($selectedItem.Tag -eq "▶" -or $selectedItem.Tag -eq "★")) {
             $dateEnd.SelectedDate = $dateStart.SelectedDate
         }
     })

@@ -2,6 +2,8 @@
 
 Outlook の予定を取得し、作業ログと合わせてガントチャート表示する PowerShell/WPF アプリ。
 
+![ガントチャート画面](docs/screenshot-gantt-chart.png)
+
 ## 開発
 
 開発時は分割された `src/` 配下のファイルを使う。
