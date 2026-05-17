@@ -1,8 +1,12 @@
+# Auto-generated from src/*.ps1 by build.ps1.
+# Edit files under src/ instead of this generated file.
+# Source commit: 799e94c
+
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Windows.Forms
 
-$ScriptPath = $PSScriptRoot
+$ScriptPath = if ($script:AppRoot) { $script:AppRoot } else { $PSScriptRoot }
 $TasksFile = Join-Path $ScriptPath "schedules.json"
 $LogsFile = Join-Path $ScriptPath "logs.json"
 
@@ -77,6 +81,9 @@ $COL_WIDTH_LOG_TIME = 60        # 「作業時間」(ログ)列の幅
 $COL_WIDTH_MEMO   = 400         # 「メモ」列の幅
 $FONT_MAIN = "Noto Sans JP, Meiryo, Yu Gothic UI" # 全体のメインフォント
 $FONT_GANTT = "Yu Gothic"                          # ガントチャート箇所のフォント
+$FONT_SIZE_MAIN = 11
+$FONT_SIZE_DIALOG = 11
+$FONT_SIZE_GANTT = 11
 $CLR_EMPTY_CELL_BG = "#BDBDBD"     # 空欄セルの背景色（カレンダー同期など）
 $CLR_GRID_LINE = "#b1b1b1"     # セル間の枠線色
 $CLR_BORDER = "#b1b1b1"        # テーブル外枠・ヘッダー枠線色
@@ -111,46 +118,1032 @@ $CLR_CAT_RES_BG = "#E9D5FF"; $CLR_CAT_RES_FG = "#6B21A8" # 調査
 $CLR_CAT_SKILL_BG = "#FED7AA"; $CLR_CAT_SKILL_FG = "#9A3412" # スキルアップ
 $CLR_CAT_CORP_BG = "#E0E7FF"; $CLR_CAT_CORP_FG = "#3730A3" # 会社対応
 
-function Get-AllData {
-    $tasks = if (Test-Path $TasksFile) { Get-Content $TasksFile -Raw -Encoding UTF8 | ConvertFrom-Json } else { @() }
-    $logs = if (Test-Path $LogsFile) { Get-Content $LogsFile -Raw -Encoding UTF8 | ConvertFrom-Json } else { @() }
-    $status = @{} # No longer used
-    
-    $parsed = foreach ($t in $tasks) {
-        $rawTitle = $t.title
-        $st = "未着手"
-        $statusFixed = $false
-        
-        if ($t.categories -like "*完了*") { $st = "完了"; $statusFixed = $true }
-        elseif ($t.categories -like "*廃止*") { $st = "廃棄"; $statusFixed = $true }
-        
-        $type = ""
-        if ($rawTitle -match "✕") { $type = "絶対期限" }
-        elseif ($rawTitle -match "◆") { $type = "推奨期限" }
-        elseif ($rawTitle -match "★") { 
-            $type = "参照用"
-            if (-not $statusFixed) { $st = "表示" }
-        }
-        elseif ($rawTitle -match "◇") { $type = "目安期限" }
-        elseif ($rawTitle -match "▶") { $type = "予定日" }
+function Read-JsonArray {
+    param([string]$Path)
 
-        $cat = ""
-        if ($rawTitle -match "[\[［](.+?)[\]］]") { $cat = $Matches[1] }
-        $cleanTitle = $rawTitle -replace "[\[［](.+?)[\]］]", ""
+    if (-not (Test-Path $Path)) {
+        return @()
+    }
 
-        [PSCustomObject]@{
-            uid = $t.uid; タイトル = $cleanTitle; ステータス = $st; 期限タイプ = $type; 分類 = $cat; 
-            開始日 = $t.start; 終了日 = $t.end; 開始時間 = $t.startTime; 終了時間 = $t.endTime; メモ = (Format-Memo $t.memo)
+    $json = Get-Content $Path -Raw -Encoding UTF8
+    if ([string]::IsNullOrWhiteSpace($json)) {
+        return @()
+    }
+
+    return @(ConvertFrom-Json $json)
+}
+
+function Write-JsonData {
+    param(
+        [string]$Path,
+        $Data
+    )
+
+    $Data | ConvertTo-Json | Out-File $Path -Encoding UTF8
+}
+
+$CategoryConfigRoot = if ($ScriptPath) { $ScriptPath } elseif ($script:AppRoot) { $script:AppRoot } else { Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
+$CategoriesFile = Join-Path $CategoryConfigRoot "categories.json"
+
+function Get-DefaultCategories {
+    @(
+        [PSCustomObject]@{ name = "業務"; background = $CLR_CAT_PAY_BG; foreground = $CLR_CAT_PAY_FG }
+        [PSCustomObject]@{ name = "重要"; background = $CLR_CAT_IMPORTANT_BG; foreground = $CLR_CAT_IMPORTANT_FG }
+        [PSCustomObject]@{ name = "調査"; background = $CLR_CAT_RES_BG; foreground = $CLR_CAT_RES_FG }
+        [PSCustomObject]@{ name = "雑務"; background = $CLR_CAT_CHORE_BG; foreground = $CLR_CAT_CHORE_FG }
+        [PSCustomObject]@{ name = "手続き"; background = $CLR_CAT_PROC_BG; foreground = $CLR_CAT_PROC_FG }
+        [PSCustomObject]@{ name = "スキルアップ"; background = $CLR_CAT_SKILL_BG; foreground = $CLR_CAT_SKILL_FG }
+        [PSCustomObject]@{ name = "会社対応"; background = $CLR_CAT_CORP_BG; foreground = $CLR_CAT_CORP_FG }
+        [PSCustomObject]@{ name = "支払い"; background = $CLR_CAT_PAY_BG; foreground = $CLR_CAT_PAY_FG }
+    )
+}
+
+function Get-Categories {
+    if (-not (Test-Path $CategoriesFile)) {
+        Write-JsonData -Path $CategoriesFile -Data (Get-DefaultCategories)
+    }
+
+    $categories = Read-JsonArray -Path $CategoriesFile
+
+    foreach ($category in $categories) {
+        if (-not $category.background) { $category | Add-Member -MemberType NoteProperty -Name background -Value "#E5E7EB" -Force }
+        if (-not $category.foreground) { $category | Add-Member -MemberType NoteProperty -Name foreground -Value "#333333" -Force }
+        $category
+    }
+}
+
+function Get-CategoryNames {
+    @(Get-Categories | ForEach-Object { $_.name })
+}
+
+function Get-CategoryTheme {
+    param([string]$Name)
+
+    $category = Get-Categories | Where-Object { $_.name -eq $Name } | Select-Object -First 1
+    if ($category) {
+        return $category
+    }
+
+    [PSCustomObject]@{
+        name = $Name
+        background = "#E5E7EB"
+        foreground = "#333333"
+    }
+}
+$SettingsConfigRoot = if ($ScriptPath) { $ScriptPath } elseif ($script:AppRoot) { $script:AppRoot } else { Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
+$SettingsFile = Join-Path $SettingsConfigRoot "settings.json"
+
+function Get-DefaultAppSettings {
+    [PSCustomObject]@{
+        ganttDefaultDays = 35
+        ganttStartOffsetDays = -7
+        logInputModeDefault = $true
+        suppressWeekendScheduleHighlightDefault = $false
+        addAppointmentPrivateDefault = $true
+        addAppointmentShowAsFreeDefault = $true
+        addAppointmentTypeDefaultSymbol = "◆"
+        addAppointmentCategoryDefault = "業務"
+        rememberWindowPlacement = $true
+        windowWidth = 769
+        windowHeight = 600
+        windowMinWidth = 825
+        windowMinHeight = 420
+        windowLeft = $null
+        windowTop = $null
+        fontMain = "Noto Sans JP, Meiryo, Yu Gothic UI"
+        fontGantt = "Yu Gothic"
+        fontSizeMain = 11
+        fontSizeDialog = 11
+        fontSizeGantt = 11
+    }
+}
+
+function Add-MissingSetting {
+    param(
+        $Settings,
+        [string]$Name,
+        $Value
+    )
+
+    if ($null -eq $Settings.PSObject.Properties[$Name]) {
+        $Settings | Add-Member -MemberType NoteProperty -Name $Name -Value $Value -Force
+    }
+}
+
+function Get-AppSettings {
+    if (-not (Test-Path $SettingsFile)) {
+        Write-JsonData -Path $SettingsFile -Data (Get-DefaultAppSettings)
+    }
+
+    $settings = Get-Content $SettingsFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    $defaults = Get-DefaultAppSettings
+    foreach ($property in $defaults.PSObject.Properties) {
+        Add-MissingSetting -Settings $settings -Name $property.Name -Value $property.Value
+    }
+
+    return $settings
+}
+
+function Save-AppSettings {
+    param($Settings)
+
+    Write-JsonData -Path $SettingsFile -Data $Settings
+}
+
+function Test-WindowPlacementOnScreen {
+    param(
+        [double]$Left,
+        [double]$Top,
+        [double]$Width,
+        [double]$Height
+    )
+
+    $screenLeft = [System.Windows.SystemParameters]::VirtualScreenLeft
+    $screenTop = [System.Windows.SystemParameters]::VirtualScreenTop
+    $screenRight = $screenLeft + [System.Windows.SystemParameters]::VirtualScreenWidth
+    $screenBottom = $screenTop + [System.Windows.SystemParameters]::VirtualScreenHeight
+
+    return (
+        $Left -lt $screenRight -and
+        ($Left + [Math]::Min($Width, 120)) -gt $screenLeft -and
+        $Top -lt $screenBottom -and
+        ($Top + [Math]::Min($Height, 80)) -gt $screenTop
+    )
+}
+
+function Restore-WindowPlacement {
+    param(
+        $Window,
+        $Settings
+    )
+
+    if ($Settings.windowMinWidth -and [double]$Settings.windowMinWidth -gt 0) {
+        $Window.MinWidth = [double]$Settings.windowMinWidth
+    }
+    if ($Settings.windowMinHeight -and [double]$Settings.windowMinHeight -gt 0) {
+        $Window.MinHeight = [double]$Settings.windowMinHeight
+    }
+
+    if ($Settings.windowWidth -and [double]$Settings.windowWidth -ge $Window.MinWidth) {
+        $Window.Width = [double]$Settings.windowWidth
+    }
+    if ($Settings.windowHeight -and [double]$Settings.windowHeight -ge $Window.MinHeight) {
+        $Window.Height = [double]$Settings.windowHeight
+    }
+
+    if ($Settings.rememberWindowPlacement -and $null -ne $Settings.windowLeft -and $null -ne $Settings.windowTop) {
+        $left = [double]$Settings.windowLeft
+        $top = [double]$Settings.windowTop
+        if (Test-WindowPlacementOnScreen -Left $left -Top $top -Width $Window.Width -Height $Window.Height) {
+            $Window.WindowStartupLocation = "Manual"
+            $Window.Left = $left
+            $Window.Top = $top
         }
     }
-    return @{ parsed = @($parsed); logs = @($logs); status = $status }
+}
+
+function Save-WindowPlacement {
+    param(
+        $Window,
+        $Settings
+    )
+
+    if (-not $Settings.rememberWindowPlacement) { return }
+    if ($Window.WindowState -eq "Minimized") { return }
+
+    $Settings.windowWidth = [int][Math]::Round($Window.RestoreBounds.Width)
+    $Settings.windowHeight = [int][Math]::Round($Window.RestoreBounds.Height)
+    $Settings.windowLeft = [int][Math]::Round($Window.RestoreBounds.Left)
+    $Settings.windowTop = [int][Math]::Round($Window.RestoreBounds.Top)
+    Save-AppSettings -Settings $Settings
+}
+
+function Apply-AppFontSettings {
+    param($Settings)
+
+    if (-not [string]::IsNullOrWhiteSpace($Settings.fontMain)) {
+        $script:FONT_MAIN = [string]$Settings.fontMain
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Settings.fontGantt)) {
+        $script:FONT_GANTT = [string]$Settings.fontGantt
+    }
+    if ($Settings.fontSizeMain -and [double]$Settings.fontSizeMain -gt 0) {
+        $script:FONT_SIZE_MAIN = [double]$Settings.fontSizeMain
+    }
+    if ($Settings.fontSizeDialog -and [double]$Settings.fontSizeDialog -gt 0) {
+        $script:FONT_SIZE_DIALOG = [double]$Settings.fontSizeDialog
+    }
+    if ($Settings.fontSizeGantt -and [double]$Settings.fontSizeGantt -gt 0) {
+        $script:FONT_SIZE_GANTT = [double]$Settings.fontSizeGantt
+    }
+}
+
+function Select-ComboBoxItemByContent {
+    param(
+        $ComboBox,
+        [string]$Content
+    )
+
+    for ($i = 0; $i -lt $ComboBox.Items.Count; $i++) {
+        if ([string]$ComboBox.Items[$i].Content -eq $Content) {
+            $ComboBox.SelectedIndex = $i
+            return
+        }
+    }
+}
+
+function Select-ComboBoxItemByTag {
+    param(
+        $ComboBox,
+        [string]$Tag
+    )
+
+    for ($i = 0; $i -lt $ComboBox.Items.Count; $i++) {
+        if ([string]$ComboBox.Items[$i].Tag -eq $Tag) {
+            $ComboBox.SelectedIndex = $i
+            return
+        }
+    }
+}
+function Get-HelpText {
+    @"
+【ガントチャート使用時の留意事項・詳細リファレンス】
+■ Outlook同期の手順・要件
+・デスクトップ版 Outlook（Classic版）がインストールされ、アカウントがセットアップされている必要があります。
+・Outlookにログインした状態であれば、本ツールの「Outlook同期」ボタンを押すだけで同期が始まります。
+・Web版やスマホ版での変更がすぐに反映されない場合は、デスクトップ版Outlook側で一度「すべて送信/受信」を実行して最新の状態に更新してください。
+
+■ Outlook同期とステータス
+・同期範囲：前後36ヶ月分（3年間）を同期します。
+・優先順位：Outlookの「カテゴリー」が最優先されます。
+　- 「完了」カテゴリー ⇒ ステータス「完了」
+　- 「廃止」カテゴリー ⇒ ステータス「廃棄」
+　- 指定なし ⇒ 「未着手」（タイトルに★があれば「表示」）
+・タイトル記号：タイトル内に「★」=参照用、「✕」=絶対期限、「◆」=推奨期限、「◇」=目安期限、「▶」=予定日として扱われます。
+・絶対期限の仕様: 終了日の次の日が絶対期限日として扱う。（当日は作業できない前提）
+・メモの整形：OutlookのHTML形式メモは、タグを除去してプレーンテキストとして表示します。
+
+■ フィルタリングの仕様
+・未着手フィルタ：ステータスが「未着手」かつ期限（終了日）が【今日 + 44日】より先の予定は、一覧をスッキリさせるため非表示になります。
+・完了/廃棄表示：それぞれ最新の【直近15件】のみが表示されます。
+
+■ 記号とカラーのルール
+・塗りつぶし（▶■▲）：その日に「作業ログ」が存在することを示します。
+・白抜き（▷□△）：作業ログがない「予定のみ」の状態を示します。
+・特殊記号：
+　- ✕：期間の【翌日】に表示されます。
+　- ◉：完了ステータスの際、最後に作業ログを入力した日に表示されます。
+　- ‼/❘：タイトルの記号に応じた推奨/目安期限の補助記号です。
+・コーナーマーク（右上の青三角）：
+　- スケジュール名列：メモが存在する場合に表示。
+　- ガントセル：作業ログがある、または期限日に時間設定がある場合に表示。
+
+■ 便利機能・操作
+・ダブルクリック：
+　- スケジュール名：作業ログ入力（ログモードON時）またはメモ表示。
+　- ガントセル：その日の作業ログ詳細を表示。
+・表示リセット：列の幅やスクロールを初期状態に戻します。
+
+■ 設定ファイルによるカスタマイズ
+・settings.json：画面や予定追加の初期値を管理します。ファイルがない場合は初回読み込み時に自動生成されます。
+　- ganttDefaultDays：ガントチャートの初期表示日数。候補は 14 / 35 / 60 / 90 / 120。
+　- ganttStartOffsetDays：ガント開始日の初期値。-7 なら今日の7日前、0 なら今日、7 なら今日の7日後。
+　- logInputModeDefault：作業ログ入力モードを初期ONにするか。
+　- suppressWeekendScheduleHighlightDefault：土日の予定セルのオレンジ色を初期状態で抑制するか。
+　- addAppointmentPrivateDefault：予定追加時、「非公開」を初期ONにするか。
+　- addAppointmentShowAsFreeDefault：予定追加時、「空き時間として表示」を初期ONにするか。
+　- addAppointmentTypeDefaultSymbol：予定追加時の期限タイプ初期値。✕ / ◆ / ◇ / ▶ のいずれか。
+　- addAppointmentCategoryDefault：予定追加時の分類初期値。
+　- rememberWindowPlacement：終了時のウィンドウサイズ/位置を保存し、次回起動時に復元するか。
+　- windowWidth / windowHeight：ウィンドウ幅/高さ。
+　- windowMinWidth / windowMinHeight：ウィンドウを小さくできる最小幅/高さ。
+　- windowLeft / windowTop：ウィンドウ位置。画面外になりそうな場合は中央表示に戻ります。
+　- fontMain：画面全体で使うメインフォント。
+　- fontGantt：ガントチャートの日付セル記号で使うフォント。
+　- fontSizeMain：メイン画面の基本フォントサイズ。
+　- fontSizeDialog：ヘルプや入力ダイアログの基本フォントサイズ。
+　- fontSizeGantt：ガントチャートの日付セル記号のフォントサイズ。
+・categories.json：分類名と分類バッジ色を管理します。ファイルがない場合は初回読み込み時に自動生成されます。
+　- name：分類名。
+　- background：分類バッジの背景色。
+　- foreground：分類バッジの文字色。
+
+■ データ管理
+・schedules.json：Outlook同期データ（キャッシュ）。
+・logs.json：入力した作業ログ。
+・settings.json：ユーザー設定。
+・categories.json：分類設定。
+※バックアップ時は上記4ファイルを保存してください。
+"@
+}
+function Get-ScheduleStatus {
+    param(
+        [string]$Categories,
+        [string]$Title
+    )
+
+    if ($Categories -like "*完了*") {
+        return "完了"
+    }
+    if ($Categories -like "*廃止*") {
+        return "廃棄"
+    }
+    if ($Title -match "★") {
+        return "表示"
+    }
+
+    return "未着手"
+}
+
+function Get-ScheduleType {
+    param([string]$Title)
+
+    if ($Title -match "✕") { return "絶対期限" }
+    if ($Title -match "◆") { return "推奨期限" }
+    if ($Title -match "★") { return "参照用" }
+    if ($Title -match "◇") { return "目安期限" }
+    if ($Title -match "▶") { return "予定日" }
+
+    return ""
+}
+
+function Get-ScheduleCategory {
+    param([string]$Title)
+
+    if ($Title -match "[\[［](.+?)[\]］]") {
+        return $Matches[1]
+    }
+
+    return ""
+}
+
+function Get-CleanScheduleTitle {
+    param([string]$Title)
+
+    return $Title -replace "[\[［](.+?)[\]］]", ""
+}
+
+function ConvertTo-ScheduleItem {
+    param($Task)
+
+    $rawTitle = $Task.title
+    $category = Get-ScheduleCategory -Title $rawTitle
+    $categoryTheme = Get-CategoryTheme -Name $category
+
+    [PSCustomObject]@{
+        uid = $Task.uid
+        タイトル = Get-CleanScheduleTitle -Title $rawTitle
+        ステータス = Get-ScheduleStatus -Categories $Task.categories -Title $rawTitle
+        期限タイプ = Get-ScheduleType -Title $rawTitle
+        分類 = $category
+        分類背景 = $categoryTheme.background
+        分類文字色 = $categoryTheme.foreground
+        開始日 = $Task.start
+        終了日 = $Task.end
+        開始時間 = $Task.startTime
+        終了時間 = $Task.endTime
+        メモ = Format-Memo $Task.memo
+    }
+}
+function Format-AppointmentTitle {
+    param(
+        [string]$Symbol,
+        [string]$Category,
+        [string]$Title
+    )
+
+    return "$Symbol［$Category］$Title"
+}
+
+function Test-TimeText {
+    param([string]$Text)
+
+    return ($Text -match '^\d{1,2}:\d{2}$')
+}
+
+function Add-CategoryText {
+    param(
+        [string]$Categories,
+        [string]$Category
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Categories)) {
+        return $Category
+    }
+    if ($Categories -like "*$Category*") {
+        return $Categories
+    }
+
+    return "$Categories, $Category"
+}
+
+function Set-CachedScheduleCompleted {
+    param(
+        [array]$Schedules,
+        [string]$Uid
+    )
+
+    foreach ($schedule in $Schedules) {
+        if ($schedule.uid -eq $Uid) {
+            $schedule.categories = Add-CategoryText -Categories $schedule.categories -Category "完了"
+        }
+    }
+
+    return @($Schedules)
+}
+
+function Get-IncompleteSchedules {
+    param([array]$Schedules)
+
+    @($Schedules | Where-Object { $_.ステータス -ne "完了" } | Sort-Object 開始日, タイトル)
+}
+function New-WorkLog {
+    param(
+        [string]$Uid,
+        [string]$Date,
+        [string]$Content,
+        [string]$Time
+    )
+
+    [PSCustomObject]@{
+        uid = $Uid
+        date = $Date
+        content = $Content
+        time = $Time
+    }
+}
+
+function Find-WorkLogIndex {
+    param(
+        [array]$Logs,
+        $TargetLog
+    )
+
+    for ($i = 0; $i -lt $Logs.Count; $i++) {
+        if ($Logs[$i].uid -eq $TargetLog.uid -and
+            $Logs[$i].date -eq $TargetLog.date -and
+            $Logs[$i].time -eq $TargetLog.time -and
+            $Logs[$i].content -eq $TargetLog.content) {
+            return $i
+        }
+    }
+
+    return -1
+}
+
+function Upsert-WorkLog {
+    param(
+        [array]$Logs,
+        $NewLog,
+        $EditLog
+    )
+
+    if ($EditLog) {
+        $index = Find-WorkLogIndex -Logs $Logs -TargetLog $EditLog
+        if ($index -ge 0) {
+            $Logs[$index] = $NewLog
+            return @($Logs)
+        }
+    }
+
+    return @($Logs + $NewLog)
+}
+
+function Format-WorkLogTime {
+    param($WorkTime)
+
+    if ($WorkTime) {
+        if ($WorkTime -match '分$') {
+            return $WorkTime
+        }
+
+        return "$($WorkTime)分"
+    }
+
+    return "0分"
+}
+
+function ConvertTo-DisplayWorkLog {
+    param(
+        $Log,
+        [array]$Tasks
+    )
+
+    $taskEntry = $Tasks | Where-Object { $_.uid -eq $Log.uid } | Select-Object -First 1
+    $title = if ($taskEntry) { $taskEntry.タイトル } else { "不明なスケジュール" }
+
+    $Log | Add-Member -MemberType NoteProperty -Name "title" -Value $title -Force
+    $Log | Add-Member -MemberType NoteProperty -Name "displayTime" -Value (Format-WorkLogTime -WorkTime ($Log.time)) -Force -PassThru
+}
+
+function ConvertTo-DisplayWorkLogs {
+    param(
+        [array]$Logs,
+        [array]$Tasks
+    )
+
+    foreach ($log in ($Logs | Sort-Object date -Descending)) {
+        ConvertTo-DisplayWorkLog -Log $log -Tasks $Tasks
+    }
+}
+function Get-GanttDateCellBackground {
+    param(
+        [datetime]$Date,
+        [string]$TodayText
+    )
+
+    $dateText = $Date.ToString("yyyy/MM/dd")
+    $isToday = ($dateText -eq $TodayText)
+    $isWeekend = ($Date.DayOfWeek -eq 'Saturday' -or $Date.DayOfWeek -eq 'Sunday')
+    $isOddMonth = ($Date.Month % 2 -eq 1)
+
+    if ($isToday) {
+        return $CLR_GANTT_TODAY_BG
+    }
+    if ($isWeekend) {
+        if ($isOddMonth) { return $CLR_GANTT_WE_ODD_BG }
+        return $CLR_GANTT_WE_EVEN_BG
+    }
+    if ($isOddMonth) {
+        return $CLR_GANTT_ODD_BG
+    }
+
+    return $CLR_GANTT_EVEN_BG
+}
+
+function Get-GanttDateHeaderTheme {
+    param(
+        [datetime]$Date,
+        [string]$TodayText
+    )
+
+    $dateText = $Date.ToString("yyyy/MM/dd")
+    $background = $CLR_GANTT_HDR_DEFAULT_BG
+    $foreground = $CLR_GANTT_HDR_FG
+
+    if ($dateText -eq $TodayText) {
+        $background = $CLR_GANTT_HDR_TODAY_BG
+        $foreground = $CLR_GANTT_HDR_TODAY_FG
+    }
+    elseif ($Date.Month % 2 -eq 1) {
+        $background = $CLR_GANTT_HDR_ODD_BG
+    }
+
+    [PSCustomObject]@{
+        Background = $background
+        Foreground = $foreground
+    }
+}
+function Get-GanttDeadline {
+    param($Task)
+
+    $deadline = $Task.終了日
+    if ($Task.期限タイプ -eq "絶対期限" -and $Task.終了日 -ne "") {
+        try {
+            $deadline = ([datetime]$Task.終了日).AddDays(1).ToString("yyyy/MM/dd")
+        }
+        catch {
+            $deadline = $Task.終了日
+        }
+    }
+
+    return $deadline
+}
+
+function Test-GanttInPeriod {
+    param(
+        $Task,
+        [string]$DateText
+    )
+
+    $inPeriod = ($Task.開始日 -ne "" -and $Task.終了日 -ne "" -and $DateText -ge $Task.開始日 -and $DateText -le $Task.終了日)
+    if ($Task.開始日 -eq "" -and $Task.終了日 -ne "" -and $DateText -eq $Task.終了日) {
+        $inPeriod = $true
+    }
+
+    return $inPeriod
+}
+
+function Get-GanttSymbol {
+    param(
+        $Task,
+        [string]$DateText,
+        [string]$TodayText,
+        [string]$Deadline,
+        [bool]$HasLog,
+        [bool]$InPeriod,
+        [string]$LastWorkDate
+    )
+
+    $symbol = ""
+
+    if ($Task.期限タイプ -eq "参照用") {
+        if ($InPeriod -or $DateText -eq $Deadline) {
+            return "★"
+        }
+
+        return ""
+    }
+
+    if ($HasLog) {
+        if ($Task.期限タイプ -ne "予定日" -and $Task.ステータス -eq "完了" -and $DateText -eq $LastWorkDate) {
+            $symbol = "◉"
+        }
+        elseif ($Task.期限タイプ -eq "予定日" -and $DateText -eq $Deadline) {
+            $symbol = "▶"
+        }
+        elseif ($InPeriod) {
+            $symbol = "■"
+        }
+        else {
+            $symbol = "▲"
+        }
+    }
+    else {
+        if ($Task.期限タイプ -eq "絶対期限" -and $DateText -eq $Deadline) {
+            $symbol = "✕"
+        }
+        elseif ($Task.期限タイプ -eq "予定日" -and $DateText -eq $Deadline) {
+            $symbol = "▷"
+        }
+        elseif ($InPeriod) {
+            $symbol = "□"
+        }
+        elseif ($Task.ステータス -ne "完了" -and $Deadline -ne "" -and $DateText -gt $Deadline -and $DateText -lt $TodayText) {
+            if ($Task.期限タイプ -ne "予定日") {
+                $symbol = "・"
+            }
+            else {
+                $symbol = "＊"
+            }
+        }
+    }
+
+    if ($DateText -eq $Deadline -and $symbol -ne "") {
+        if ($Task.期限タイプ -eq "推奨期限") { $symbol += "‼" }
+        if ($Task.期限タイプ -eq "目安期限") { $symbol += "❘" }
+    }
+
+    return $symbol
+}
+
+function Format-GanttCellToolTip {
+    param(
+        $Task,
+        [string]$DateText,
+        [string]$Deadline,
+        [array]$LogsForDay
+    )
+
+    $hasLog = $LogsForDay.Count -gt 0
+    $hasTimeOnDeadline = ($DateText -eq $Deadline -and ($Task.開始時間 -ne "" -or $Task.終了時間 -ne ""))
+    if (-not $hasLog -and -not $hasTimeOnDeadline) {
+        return ""
+    }
+
+    $timeInfo = ""
+    if ($DateText -eq $Deadline) {
+        if ($Task.開始時間 -ne "" -and $Task.終了時間 -ne "") { $timeInfo = "$($Task.開始時間)～$($Task.終了時間)`n`n" }
+        elseif ($Task.開始時間 -eq "" -and $Task.終了時間 -ne "") { $timeInfo = "～$($Task.終了時間)`n`n" }
+        elseif ($Task.終了時間 -eq "" -and $Task.開始時間 -ne "") { $timeInfo = "$($Task.開始時間)～`n`n" }
+    }
+
+    $logEntries = @()
+    foreach ($log in $LogsForDay) {
+        $logTime = Format-WorkLogTime -WorkTime ($log.time)
+        $logEntries += "作業時間：$logTime`n$($log.content)"
+    }
+
+    return ($timeInfo + ($logEntries -join "`n`n")).Trim()
+}
+
+function Get-GanttCellBackground {
+    param(
+        $Task,
+        [string]$DateText,
+        [string]$TodayText,
+        [string]$Symbol
+    )
+
+    $background = "Transparent"
+    if ($DateText -lt $TodayText) {
+        $background = $CLR_GANTT_PAST_BG
+    }
+
+    if ($Symbol -ne "") {
+        if ($Task.ステータス -eq "完了") {
+            $background = "Transparent"
+        }
+        elseif ($Symbol -match "✕") {
+            $background = "#EA4335"
+        }
+        elseif ($Symbol -eq "★") {
+            $background = $CLR_ROW_DISPLAY
+        }
+        elseif ($Symbol -eq "・") {
+            $background = $CLR_STA_OVERDUE_BG
+        }
+        elseif ($Symbol -match "＊") {
+            $background = $CLR_STA_OVERDUE_ABS_BG
+        }
+        else {
+            $background = "#FF9900"
+        }
+    }
+
+    return $background
+}
+
+function Get-GanttCellState {
+    param(
+        $Task,
+        [string]$DateText,
+        [string]$TodayText,
+        [array]$TaskLogs,
+        [string]$LastWorkDate
+    )
+
+    $logsForDay = @($TaskLogs | Where-Object { $_.date -eq $DateText })
+    $hasLog = $logsForDay.Count -gt 0
+    $deadline = Get-GanttDeadline -Task $Task
+    $inPeriod = Test-GanttInPeriod -Task $Task -DateText $DateText
+    $symbol = Get-GanttSymbol -Task $Task -DateText $DateText -TodayText $TodayText -Deadline $deadline -HasLog $hasLog -InPeriod $inPeriod -LastWorkDate $LastWorkDate
+    $tooltip = Format-GanttCellToolTip -Task $Task -DateText $DateText -Deadline $deadline -LogsForDay $logsForDay
+    $hasTimeOnThisDay = ($DateText -eq $deadline -and ($Task.開始時間 -ne "" -or $Task.終了時間 -ne ""))
+
+    [PSCustomObject]@{
+        Symbol = $symbol
+        Background = Get-GanttCellBackground -Task $Task -DateText $DateText -TodayText $TodayText -Symbol $symbol
+        ToolTip = $tooltip
+        HasToolTip = ($tooltip -ne "")
+        InfoVisibility = if ($hasLog -or $hasTimeOnThisDay) { "Visible" } else { "Collapsed" }
+    }
+}
+function Get-RecentClosedTaskUids {
+    param([array]$Tasks)
+
+    $completedUids = @($Tasks | Where-Object { $_.ステータス -eq "完了" } | Select-Object -Last 15 | ForEach-Object { $_.uid })
+    $discardedUids = @($Tasks | Where-Object { $_.ステータス -eq "廃棄" } | Select-Object -Last 15 | ForEach-Object { $_.uid })
+
+    return @($completedUids + $discardedUids)
+}
+
+function Test-GanttTaskVisible {
+    param(
+        $Task,
+        [array]$RecentClosedTaskUids,
+        [string]$UnstartedEndLimitText
+    )
+
+    if (($Task.ステータス -eq "完了" -or $Task.ステータス -eq "廃棄") -and $RecentClosedTaskUids -notcontains $Task.uid) {
+        return $false
+    }
+
+    if ($Task.ステータス -eq "未着手" -and $Task.終了日 -ne "" -and $Task.終了日 -gt $UnstartedEndLimitText) {
+        return $false
+    }
+
+    return $true
+}
+
+function Select-GanttVisibleTasks {
+    param(
+        [array]$Tasks,
+        [datetime]$BaseDate = (Get-Date)
+    )
+
+    $recentClosedTaskUids = Get-RecentClosedTaskUids -Tasks $Tasks
+    $unstartedEndLimitText = $BaseDate.AddDays(44).ToString("yyyy/MM/dd")
+
+    foreach ($task in $Tasks) {
+        if (Test-GanttTaskVisible -Task $task -RecentClosedTaskUids $recentClosedTaskUids -UnstartedEndLimitText $unstartedEndLimitText) {
+            $task
+        }
+    }
+}
+
+function New-GanttDataTable {
+    param(
+        [datetime]$StartDate,
+        [int]$Days
+    )
+
+    $table = New-Object System.Data.DataTable
+    [void]$table.Columns.Add("ステータス")
+    [void]$table.Columns.Add("分類")
+    [void]$table.Columns.Add("分類背景")
+    [void]$table.Columns.Add("分類文字色")
+    [void]$table.Columns.Add("スケジュール名")
+    [void]$table.Columns.Add("メモ")
+    [void]$table.Columns.Add("OriginalTask", [object])
+    [void]$table.Columns.Add("MemoVis")
+
+    for ($i = 0; $i -lt $Days; $i++) {
+        $dateText = $StartDate.AddDays($i).ToString("yyyy/MM/dd")
+        [void]$table.Columns.Add($dateText)
+        [void]$table.Columns.Add("${dateText}_TT")
+        [void]$table.Columns.Add("${dateText}_Vis", [bool])
+        [void]$table.Columns.Add("${dateText}_Bg")
+        [void]$table.Columns.Add("${dateText}_InfoVis")
+    }
+
+    return ,$table
+}
+
+function Add-GanttTaskRow {
+    param(
+        [System.Data.DataTable]$DataTable,
+        $Task,
+        [array]$Logs,
+        [datetime]$StartDate,
+        [int]$Days,
+        [string]$TodayText,
+        [bool]$SuppressWeekendScheduleHighlight = $false
+    )
+
+    $row = $DataTable.NewRow()
+    $row["ステータス"] = $Task.ステータス
+    $row["分類"] = $Task.分類
+    $row["分類背景"] = $Task.分類背景
+    $row["分類文字色"] = $Task.分類文字色
+    $row["スケジュール名"] = $Task.タイトル
+    $row["メモ"] = $Task.メモ
+    $row["OriginalTask"] = $Task
+    $row["MemoVis"] = if (-not [string]::IsNullOrWhiteSpace($Task.メモ) -and $Task.メモ -ne "") { "Visible" } else { "Collapsed" }
+
+    $taskLogs = @($Logs | Where-Object { $_.uid -eq $Task.uid })
+    $lastWorkDate = ""
+    if ($taskLogs.Count -gt 0) {
+        $lastWorkDate = ($taskLogs | Sort-Object date -Descending)[0].date
+    }
+
+    for ($i = 0; $i -lt $Days; $i++) {
+        $date = $StartDate.AddDays($i)
+        $dateText = $date.ToString("yyyy/MM/dd")
+        $cell = Get-GanttCellState -Task $Task -DateText $dateText -TodayText $TodayText -TaskLogs $taskLogs -LastWorkDate $lastWorkDate
+        $background = $cell.Background
+        $isWeekend = ($date.DayOfWeek -eq 'Saturday' -or $date.DayOfWeek -eq 'Sunday')
+        if ($SuppressWeekendScheduleHighlight -and $isWeekend -and $background -eq "#FF9900") {
+            $background = "Transparent"
+        }
+
+        $row[$dateText] = $cell.Symbol
+        $row["${dateText}_Bg"] = $background
+        $row["${dateText}_TT"] = $cell.ToolTip
+        $row["${dateText}_Vis"] = $cell.HasToolTip
+        $row["${dateText}_InfoVis"] = $cell.InfoVisibility
+    }
+
+    [void]$DataTable.Rows.Add($row)
+}
+
+function ConvertTo-GanttDataView {
+    param(
+        [array]$Tasks,
+        [array]$Logs,
+        [datetime]$StartDate,
+        [int]$Days,
+        [datetime]$BaseDate = (Get-Date),
+        [bool]$SuppressWeekendScheduleHighlight = $false
+    )
+
+    $todayText = $BaseDate.ToString("yyyy/MM/dd")
+    $table = New-GanttDataTable -StartDate $StartDate -Days $Days
+
+    foreach ($task in (Select-GanttVisibleTasks -Tasks $Tasks -BaseDate $BaseDate)) {
+        Add-GanttTaskRow -DataTable $table -Task $task -Logs $Logs -StartDate $StartDate -Days $Days -TodayText $todayText -SuppressWeekendScheduleHighlight $SuppressWeekendScheduleHighlight
+    }
+
+    return ,$table.DefaultView
+}
+function Get-OutlookCalendarFolder {
+    param(
+        $Namespace,
+        [string]$TargetEmail
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($TargetEmail)) {
+        foreach ($store in $Namespace.Stores) {
+            if ($store.DisplayName -eq $TargetEmail) {
+                return $store.GetDefaultFolder(9)
+            }
+        }
+
+        throw "指定したアカウント（$TargetEmail）が見つかりません。"
+    }
+
+    return $Namespace.GetDefaultFolder(9)
+}
+
+function ConvertFrom-OutlookAppointment {
+    param($Item)
+
+    [PSCustomObject]@{
+        uid = $Item.EntryID
+        title = $Item.Subject
+        start = $Item.Start.ToString("yyyy/MM/dd")
+        end = if ($Item.AllDayEvent) { $Item.End.AddDays(-1).ToString("yyyy/MM/dd") } else { $Item.End.ToString("yyyy/MM/dd") }
+        startTime = if ($Item.AllDayEvent) { "" } else { $Item.Start.ToString("HH:mm") }
+        endTime = if ($Item.AllDayEvent) { "" } else { $Item.End.ToString("HH:mm") }
+        memo = Format-Memo $Item.Body
+        categories = $Item.Categories
+    }
+}
+
+function Get-OutlookScheduleSyncData {
+    param(
+        [string]$TargetEmail,
+        [int]$MonthsBefore = 36,
+        [int]$MonthsAfter = 36
+    )
+
+    $outlook = New-Object -ComObject Outlook.Application
+    $namespace = $outlook.GetNamespace("MAPI")
+    $calendar = Get-OutlookCalendarFolder -Namespace $namespace -TargetEmail $TargetEmail
+    $syncedAccount = $calendar.Store.DisplayName
+
+    $items = $calendar.Items
+    $items.IncludeRecurrences = $true
+    $items.Sort("[開始]")
+
+    $filterStart = (Get-Date).AddMonths(-$MonthsBefore).ToString("MM/dd/yyyy")
+    $filterEnd = (Get-Date).AddMonths($MonthsAfter).ToString("MM/dd/yyyy")
+    $filter = "[Start] >= '$filterStart' AND [End] <= '$filterEnd'"
+
+    $count = 0
+    $tasks = foreach ($item in $items.Restrict($filter)) {
+        if ($item -isnot [System.__ComObject]) { continue }
+        $count++
+        ConvertFrom-OutlookAppointment -Item $item
+    }
+
+    [PSCustomObject]@{
+        Tasks = @($tasks)
+        Count = $count
+        Account = $syncedAccount
+    }
+}
+
+function Add-OutlookAppointment {
+    param(
+        [string]$Subject,
+        [string]$Body,
+        [datetime]$StartDate,
+        [datetime]$EndDate,
+        [bool]$IsTimed,
+        [string]$StartTime,
+        [string]$EndTime,
+        [bool]$IsPrivate = $true,
+        [bool]$ShowAsFree = $true
+    )
+
+    $outlook = New-Object -ComObject Outlook.Application
+    $appointment = $outlook.CreateItem(1)
+
+    $appointment.Subject = $Subject
+    $appointment.Body = $Body
+    $appointment.BusyStatus = if ($ShowAsFree) { 0 } else { 2 }
+    $appointment.Sensitivity = if ($IsPrivate) { 2 } else { 0 }
+    $appointment.ReminderSet = $false
+
+    if ($IsTimed) {
+        $appointment.AllDayEvent = $false
+        $appointment.Start = $StartDate.ToString("yyyy/MM/dd ") + $StartTime
+        $appointment.End = $StartDate.ToString("yyyy/MM/dd ") + $EndTime
+    }
+    else {
+        $appointment.AllDayEvent = $true
+        $appointment.Start = $StartDate.ToString("yyyy/MM/dd 00:00:00")
+        $appointment.End = $EndDate.AddDays(1).ToString("yyyy/MM/dd 00:00:00")
+    }
+
+    $appointment.Save()
+}
+
+function Set-OutlookAppointmentCompleted {
+    param([string]$EntryId)
+
+    $outlook = New-Object -ComObject Outlook.Application
+    $namespace = $outlook.GetNamespace("MAPI")
+    $appointment = $namespace.GetItemFromID($EntryId)
+    $appointment.Categories = Add-CategoryText -Categories $appointment.Categories -Category "完了"
+    $appointment.Save()
+}
+function Get-AllData {
+    $tasks = Read-JsonArray -Path $TasksFile
+    $logs = Read-JsonArray -Path $LogsFile
+    
+    $parsed = foreach ($t in $tasks) {
+        ConvertTo-ScheduleItem -Task $t
+    }
+    return @{ parsed = @($parsed); logs = @($logs) }
 }
 
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="スケジュール管理システム" Height="600" Width="769" MinWidth="769" MinHeight="600"
-        Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="11"
+        Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_MAIN"
         WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <!-- Hide default selection background colors globally to ensure border-only selection -->
@@ -265,23 +1258,13 @@ function Get-AllData {
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="TextBlock.FontWeight" Value="SemiBold"/>
             <Setter Property="TextBlock.FontSize" Value="10.5"/>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding 分類}" Value="重要"><Setter Property="Background" Value="$CLR_CAT_IMPORTANT_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_IMPORTANT_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="雑務"><Setter Property="Background" Value="$CLR_CAT_CHORE_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_CHORE_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="支払い"><Setter Property="Background" Value="$CLR_CAT_PAY_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_PAY_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="業務"><Setter Property="Background" Value="$CLR_CAT_PAY_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_PAY_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="手続き"><Setter Property="Background" Value="$CLR_CAT_PROC_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_PROC_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="調査"><Setter Property="Background" Value="$CLR_CAT_RES_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_RES_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="スキルアップ"><Setter Property="Background" Value="$CLR_CAT_SKILL_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_SKILL_FG"/></DataTrigger>
-                <DataTrigger Binding="{Binding 分類}" Value="会社対応"><Setter Property="Background" Value="$CLR_CAT_CORP_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_CAT_CORP_FG"/></DataTrigger>
-            </Style.Triggers>
         </Style>
 
         <DataTemplate x:Key="BadgeStatusTemplate">
             <Border Style="{StaticResource BadgeStatus}"><TextBlock Text="{Binding ステータス}" HorizontalAlignment="Center"/></Border>
         </DataTemplate>
         <DataTemplate x:Key="BadgeCategoryTemplate">
-            <Border Style="{StaticResource BadgeCategory}"><TextBlock Text="{Binding 分類}" HorizontalAlignment="Center"/></Border>
+            <Border Style="{StaticResource BadgeCategory}" Background="{Binding 分類背景}"><TextBlock Text="{Binding 分類}" Foreground="{Binding 分類文字色}" HorizontalAlignment="Center"/></Border>
         </DataTemplate>
     </Window.Resources>
     
@@ -293,28 +1276,42 @@ function Get-AllData {
         </Grid.RowDefinitions>
         
         <Border Background="#FFFFFF" Padding="10,6" BorderThickness="0,0,0,1" BorderBrush="$CLR_BORDER">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Name="BtnAddAppt" Content="予定追加" Padding="12,4" Background="#34A853" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
-                <Button Name="BtnSync" Content="Outlook同期" Padding="12,4" Background="#1A73E8" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
-                <TextBlock Text="ガント開始日:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
-                <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,5,0"/>
-                <TextBlock Text="表示日数:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
-                <ComboBox Name="GanttDaysCombo" Width="40" VerticalAlignment="Center" SelectedIndex="1">
-                    <ComboBoxItem Content="14"/>
-                    <ComboBoxItem Content="35"/>
-                    <ComboBoxItem Content="60"/>
-                    <ComboBoxItem Content="90"/>
-                    <ComboBoxItem Content="120"/>
-                </ComboBox>
-                <Button Name="BtnResetView" Content="表示リセット" Width="90" Height="24" Margin="10,0,0,0" Background="#F5F5F5" BorderBrush="$CLR_BORDER" Cursor="Hand"/>
-                <CheckBox Name="ChkLogMode" Content="作業ログ入力モード" IsChecked="True" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#333333"/>
-                <Button Name="BtnHelp" Content="？" Width="22" Height="22" Margin="10,0,0,0" Background="#F0F0F0" Foreground="#555555" BorderBrush="$CLR_BORDER" Cursor="Hand" ToolTip="留意事項を表示します"/>
-            </StackPanel>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Name="ToolbarPrimaryGroup" Grid.Row="0" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <Button Name="BtnAddAppt" Content="予定追加" Padding="12,4" Background="#34A853" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+                    <Button Name="BtnComplete" Content="完了登録" Padding="12,4" Background="#1f8d61" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+                    <Button Name="BtnSync" Content="Outlook同期" Padding="12,4" Background="#1A73E8" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+                    <TextBlock Text="ガント開始日:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
+                    <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="表示日数:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
+                    <ComboBox Name="GanttDaysCombo" Width="40" VerticalAlignment="Center">
+                        <ComboBoxItem Content="14"/>
+                        <ComboBoxItem Content="35"/>
+                        <ComboBoxItem Content="60"/>
+                        <ComboBoxItem Content="90"/>
+                        <ComboBoxItem Content="120"/>
+                    </ComboBox>
+                    <Button Name="BtnResetView" Content="表示リセット" Width="90" Height="24" Margin="10,0,0,0" Background="#F5F5F5" BorderBrush="$CLR_BORDER" Cursor="Hand"/>
+                </StackPanel>
+                <StackPanel Name="ToolbarSecondaryGroup" Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0">
+                    <CheckBox Name="ChkLogMode" Content="作業ログ入力モード" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#333333" ToolTip="作業ログ入力モード"/>
+                    <CheckBox Name="ChkSuppressWeekendHighlight" Content="土日の予定色を抑制" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#333333" ToolTip="土日の予定色を抑制"/>
+                    <Button Name="BtnHelp" Content="？" Width="22" Height="22" Background="#F0F0F0" Foreground="#555555" BorderBrush="$CLR_BORDER" Cursor="Hand" ToolTip="留意事項を表示します"/>
+                </StackPanel>
+            </Grid>
         </Border>
         
         <TabControl Name="MainTab" Grid.Row="1" Background="Transparent" BorderThickness="1" BorderBrush="$CLR_BORDER" Margin="6" Padding="0">
             <TabItem Header="🔍 カレンダー同期">
-                <DataGrid Name="GridSync" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" SelectionUnit="Cell" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="False">
+                <DataGrid Name="GridSync" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" SelectionUnit="Cell" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="False">
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
                             <Setter Property="Background" Value="#FFFFFF"/>
@@ -354,13 +1351,7 @@ function Get-AllData {
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="分類" Width="$COL_WIDTH_CAT">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border Style="{StaticResource BadgeCategory}"><TextBlock Text="{Binding 分類}" HorizontalAlignment="Center"/></Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="分類" Width="$COL_WIDTH_CAT" CellTemplate="{StaticResource BadgeCategoryTemplate}"/>
                         <DataGridTextColumn Header="開始日" Binding="{Binding 開始日}" Width="$COL_WIDTH_DATE">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="6,0"/></Style>
@@ -423,7 +1414,7 @@ function Get-AllData {
                                 </Style>
                             </DataGridTextColumn.CellStyle>
                         </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="メモ" SortMemberPath="メモ" Width="$COL_WIDTH_MEMO">
+                        <DataGridTemplateColumn Header="メモ" SortMemberPath="メモ" Width="*">
                             <DataGridTemplateColumn.HeaderStyle>
                                 <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
                                     <Setter Property="HorizontalContentAlignment" Value="Left"/>
@@ -489,30 +1480,228 @@ function Get-AllData {
 </Window>
 "@
 
-$reader = (New-Object System.Xml.XmlNodeReader $xaml)
-$Form = [System.Windows.Markup.XamlReader]::Load($reader)
+$script:AppSettings = Get-AppSettings
+Apply-AppFontSettings -Settings $AppSettings
+$xaml = [xml]($xaml.OuterXml -replace 'Noto Sans JP, Meiryo, Yu Gothic UI', $FONT_MAIN)
 
-# Define controls
-$BtnAddAppt = $Form.FindName("BtnAddAppt")
-$BtnSync = $Form.FindName("BtnSync")
-$GanttDatePicker = $Form.FindName("GanttDatePicker")
-$GanttDaysCombo = $Form.FindName("GanttDaysCombo")
-$BtnResetView = $Form.FindName("BtnResetView")
-$ChkLogMode = $Form.FindName("ChkLogMode")
-$BtnHelp = $Form.FindName("BtnHelp")
-$GridSync = $Form.FindName("GridSync")
-$GridGantt = $Form.FindName("GridGantt")
-$GridLogs = $Form.FindName("GridLogs")
-$StatusMsg = $Form.FindName("StatusMsg")
+function New-MainWindow {
+    param([xml]$Xaml)
 
-# Set Default Dates
-$GanttDatePicker.SelectedDate = (Get-Date).AddDays(-7)
+    $reader = (New-Object System.Xml.XmlNodeReader $Xaml)
+    [System.Windows.Markup.XamlReader]::Load($reader)
+}
 
-# --- Button Events ---
-$BtnAddAppt.Add_Click({
-    Invoke-AddAppointmentForm
-})
+function Initialize-MainWindowControls {
+    param($Window)
 
+    $script:BtnAddAppt = $Window.FindName("BtnAddAppt")
+    $script:BtnSync = $Window.FindName("BtnSync")
+    $script:BtnComplete = $Window.FindName("BtnComplete")
+    $script:GanttDatePicker = $Window.FindName("GanttDatePicker")
+    $script:GanttDaysCombo = $Window.FindName("GanttDaysCombo")
+    $script:BtnResetView = $Window.FindName("BtnResetView")
+    $script:ChkLogMode = $Window.FindName("ChkLogMode")
+    $script:ChkSuppressWeekendHighlight = $Window.FindName("ChkSuppressWeekendHighlight")
+    $script:ToolbarSecondaryGroup = $Window.FindName("ToolbarSecondaryGroup")
+    $script:BtnHelp = $Window.FindName("BtnHelp")
+    $script:GridSync = $Window.FindName("GridSync")
+    $script:GridGantt = $Window.FindName("GridGantt")
+    $script:GridLogs = $Window.FindName("GridLogs")
+    $script:StatusMsg = $Window.FindName("StatusMsg")
+}
+
+$Form = New-MainWindow -Xaml $xaml
+Initialize-MainWindowControls -Window $Form
+
+Restore-WindowPlacement -Window $Form -Settings $AppSettings
+$GanttDatePicker.SelectedDate = (Get-Date).AddDays([int]$AppSettings.ganttStartOffsetDays)
+Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content ([string]$AppSettings.ganttDefaultDays)
+if ($GanttDaysCombo.SelectedIndex -lt 0) { Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content "35" }
+$ChkLogMode.IsChecked = [bool]$AppSettings.logInputModeDefault
+$ChkSuppressWeekendHighlight.IsChecked = [bool]$AppSettings.suppressWeekendScheduleHighlightDefault
+$BtnAddAppt.Add_Click({ Invoke-AddAppointmentForm })
+
+function ConvertTo-WpfBrush {
+    param([string]$Color)
+
+    [System.Windows.Media.BrushConverter]::new().ConvertFrom($Color)
+}
+
+function New-GanttHeaderStyle {
+    param(
+        [string]$Background,
+        [string]$Foreground = $null
+    )
+
+    $style = New-Object System.Windows.Style([System.Windows.Controls.Primitives.DataGridColumnHeader])
+    $style.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BackgroundProperty, (ConvertTo-WpfBrush -Color $Background))))
+    if ($Foreground) {
+        $style.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::ForegroundProperty, (ConvertTo-WpfBrush -Color $Foreground))))
+    }
+    $style.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::PaddingProperty, [System.Windows.Thickness]::new(6, 4, 6, 4))))
+    $style.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::FontWeightProperty, [System.Windows.FontWeights]::SemiBold)))
+    $style.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::HorizontalContentAlignmentProperty, [System.Windows.HorizontalAlignment]::Center)))
+    $style.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::VerticalContentAlignmentProperty, [System.Windows.VerticalAlignment]::Center)))
+    $style.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BorderThicknessProperty, [System.Windows.Thickness]::new(0, 0, 1, 1))))
+    $style.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BorderBrushProperty, (ConvertTo-WpfBrush -Color $CLR_BORDER))))
+    $style.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.TextBlock]::TextAlignmentProperty, [System.Windows.TextAlignment]::Center)))
+
+    return $style
+}
+
+function New-GanttFixedCellStyle {
+    [System.Windows.Markup.XamlReader]::Parse(@"
+<Style TargetType="DataGridCell" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Style.Triggers>
+        <Trigger Property="IsSelected" Value="True">
+            <Setter Property="BorderBrush" Value="$CLR_SELECTED_BORDER"/>
+        </Trigger>
+        <DataTrigger Binding="{Binding ステータス}" Value="完了">
+            <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
+            <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
+        </DataTrigger>
+    </Style.Triggers>
+</Style>
+"@)
+}
+
+function New-GanttTitleCellTemplate {
+    [System.Windows.Markup.XamlReader]::Parse(@"
+<DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Grid Background="Transparent">
+        <TextBlock Text="{Binding スケジュール名}" VerticalAlignment="Center" Margin="6,0" TextWrapping="NoWrap">
+            <TextBlock.ToolTip>
+                <ToolTip>
+                    <TextBlock Text="{Binding メモ}" TextWrapping="Wrap" MaxWidth="300" Foreground="#333333"/>
+                </ToolTip>
+            </TextBlock.ToolTip>
+        </TextBlock>
+        <Polygon Points="7,0 7,7 0,0" Fill="#0078D7" HorizontalAlignment="Right" VerticalAlignment="Top" 
+                 Margin="0,-2,0,0" Visibility="{Binding MemoVis}"/>
+    </Grid>
+</DataTemplate>
+"@)
+}
+
+function New-GanttDateCellStyle {
+    param(
+        [string]$DateText,
+        [string]$CellBackground
+    )
+
+    [System.Windows.Markup.XamlReader]::Parse(@"
+<Style TargetType="DataGridCell" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- WPFテーマのIsSelectedトリガーによる論理プロパティ上書きを完全遮断するための独立テンプレート -->
+    <Setter Property="Template">
+        <Setter.Value>
+            <ControlTemplate TargetType="DataGridCell">
+                <Border Background="{TemplateBinding Background}" 
+                        BorderThickness="{TemplateBinding BorderThickness}" 
+                        BorderBrush="{TemplateBinding BorderBrush}" 
+                        SnapsToDevicePixels="True">
+                    <ContentPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                </Border>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+    <Setter Property="Background" Value="$CellBackground"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Style.Triggers>
+        
+        <!-- 枠線描画 -->
+        <Trigger Property="IsSelected" Value="True">
+            <Setter Property="BorderBrush" Value="$CLR_SELECTED_BORDER"/>
+        </Trigger>
+        
+        <DataTrigger Binding="{Binding [${DateText}_Bg]}" Value="$CLR_STA_OVERDUE_BG">
+            <Setter Property="Background" Value="$CLR_STA_OVERDUE_BG"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding [${DateText}_Bg]}" Value="$CLR_STA_OVERDUE_ABS_BG">
+            <Setter Property="Background" Value="$CLR_STA_OVERDUE_ABS_BG"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding [${DateText}_Bg]}" Value="$CLR_GANTT_PAST_BG">
+            <Setter Property="Background" Value="$CLR_GANTT_PAST_BG"/>
+        </DataTrigger>
+        
+        <!-- 記号の背景色 -->
+        <DataTrigger Binding="{Binding [${DateText}_Bg]}" Value="#FF9900">
+            <Setter Property="Background" Value="#FF9900"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding [${DateText}_Bg]}" Value="#EA4335">
+            <Setter Property="Background" Value="#EA4335"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding [${DateText}_Bg]}" Value="$CLR_ROW_DISPLAY">
+            <Setter Property="Background" Value="$CLR_ROW_DISPLAY"/>
+        </DataTrigger>
+    </Style.Triggers>
+</Style>
+"@)
+}
+
+function New-GanttDateCellTemplate {
+    param([string]$DateText)
+
+    [System.Windows.Markup.XamlReader]::Parse(@"
+<DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Grid Background="Transparent" ToolTipService.IsEnabled="{Binding [${DateText}_Vis]}">
+        <Grid.ToolTip>
+            <ToolTip>
+                <TextBlock Text="{Binding [${DateText}_TT]}" TextWrapping="Wrap" MaxWidth="300" />
+            </ToolTip>
+        </Grid.ToolTip>
+        <TextBlock Text="{Binding [$DateText]}" 
+                   HorizontalAlignment="Center" VerticalAlignment="Center" 
+                   FontWeight="Bold" FontSize="$FONT_SIZE_GANTT" Foreground="$CLR_SYMBOL_FG" FontFamily="$FONT_GANTT"/>
+        <!-- Combined Info Mark (Top-Right Blue) -->
+        <Polygon Points="7,0 7,7 0,0" Fill="#0078D7" HorizontalAlignment="Right" VerticalAlignment="Top" 
+                 Visibility="{Binding [${DateText}_InfoVis]}"/>
+    </Grid>
+</DataTemplate>
+"@)
+}
+function Reset-SyncGridLayout {
+    param($Grid)
+
+    $Grid.Columns | ForEach-Object { $_.Width = [System.Windows.Controls.DataGridLength]::Auto }
+    if ($Grid.Columns.Count -gt 1) { $Grid.Columns[1].Width = $COL_WIDTH_TITLE }
+    if ($Grid.Columns.Count -gt 2) { $Grid.Columns[2].Width = $COL_WIDTH_STATUS }
+    if ($Grid.Columns.Count -gt 3) { $Grid.Columns[3].Width = $COL_WIDTH_TYPE }
+    if ($Grid.Columns.Count -gt 4) { $Grid.Columns[4].Width = $COL_WIDTH_CAT }
+    if ($Grid.Columns.Count -gt 5) { $Grid.Columns[5].Width = $COL_WIDTH_DATE }
+    if ($Grid.Columns.Count -gt 6) { $Grid.Columns[6].Width = $COL_WIDTH_DATE }
+    if ($Grid.Columns.Count -gt 7) { $Grid.Columns[7].Width = $COL_WIDTH_TIME }
+    if ($Grid.Columns.Count -gt 8) { $Grid.Columns[8].Width = $COL_WIDTH_TIME }
+    if ($Grid.Columns.Count -gt 9) { $Grid.Columns[9].Width = [System.Windows.Controls.DataGridLength]::new(1, [System.Windows.Controls.DataGridLengthUnitType]::Star) }
+
+    for ($i = 0; $i -lt $Grid.Columns.Count; $i++) {
+        $Grid.Columns[$i].DisplayIndex = $i
+    }
+}
+
+function Reset-LogsGridLayout {
+    param($Grid)
+
+    if ($Grid.Columns.Count -gt 0) { $Grid.Columns[0].Width = $COL_WIDTH_TITLE }
+    if ($Grid.Columns.Count -gt 1) { $Grid.Columns[1].Width = [System.Windows.Controls.DataGridLength]::new(1, [System.Windows.Controls.DataGridLengthUnitType]::Star) }
+
+    for ($i = 0; $i -lt $Grid.Columns.Count; $i++) {
+        $Grid.Columns[$i].DisplayIndex = $i
+    }
+}
+
+function Reset-AllGridLayouts {
+    Reset-SyncGridLayout -Grid $GridSync
+    Reset-LogsGridLayout -Grid $GridLogs
+    Build-GanttColumns
+    Refresh-UI
+}
 function Show-Toast($msg) {
     if ($StatusMsg) {
         $StatusMsg.Text = $msg
@@ -528,8 +1717,7 @@ function Show-Toast($msg) {
 }
 
 
-# 予定追加フォームを表示する関数
-function Invoke-AddAppointmentForm {
+function New-AddAppointmentWindow {
     [xml]$formXaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -563,7 +1751,8 @@ function Invoke-AddAppointmentForm {
             <RowDefinition Height="Auto"/> <!-- 2: Dates -->
             <RowDefinition Height="Auto"/> <!-- 3: Times -->
             <RowDefinition Height="Auto"/> <!-- 4: Memo -->
-            <RowDefinition Height="Auto"/> <!-- 5: Buttons -->
+            <RowDefinition Height="Auto"/> <!-- 5: Options -->
+            <RowDefinition Height="Auto"/> <!-- 6: Buttons -->
         </Grid.RowDefinitions>
 
         <!-- 行0: 期限タイプ & 分類 -->
@@ -575,7 +1764,7 @@ function Invoke-AddAppointmentForm {
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0">
                 <TextBlock Text="期限タイプ"/>
-                <ComboBox Name="ComboType" SelectedIndex="1">
+                <ComboBox Name="ComboType">
                     <ComboBoxItem Content="✕（絶対期限）" Tag="✕"/>
                     <ComboBoxItem Content="◆（推奨期限）" Tag="◆"/>
                     <ComboBoxItem Content="◇（目安期限）" Tag="◇"/>
@@ -585,15 +1774,7 @@ function Invoke-AddAppointmentForm {
             </StackPanel>
             <StackPanel Grid.Column="2">
                 <TextBlock Text="分類"/>
-                <ComboBox Name="ComboCat" SelectedIndex="0">
-                    <ComboBoxItem Content="業務"/>
-                    <ComboBoxItem Content="重要"/>
-                    <ComboBoxItem Content="調査"/>
-                    <ComboBoxItem Content="雑務"/>
-                    <ComboBoxItem Content="手続き"/>
-                    <ComboBoxItem Content="スキルアップ"/>
-                    <ComboBoxItem Content="会社対応"/>
-                    <ComboBoxItem Content="支払い"/>
+                <ComboBox Name="ComboCat">
                 </ComboBox>
             </StackPanel>
         </Grid>
@@ -644,8 +1825,14 @@ function Invoke-AddAppointmentForm {
             <TextBox Name="TxtMemo" MinHeight="80" MaxHeight="150" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" Padding="5" Background="#FFFFFF"/>
         </StackPanel>
 
-        <!-- 行5: ボタン -->
-        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+        <!-- 行5: Outlook オプション -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,10,0,0">
+            <CheckBox Name="ChkPrivate" Content="非公開" VerticalAlignment="Center" Margin="0,0,14,0"/>
+            <CheckBox Name="ChkShowAsFree" Content="空き時間として表示" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- 行6: ボタン -->
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
             <Button Name="BtnSave" Content="Outlookに保存" Width="130" Height="32" Background="#1A73E8" Foreground="White" BorderThickness="0" FontWeight="Bold" Cursor="Hand" Margin="0,0,10,0">
                 <Button.Style>
                     <Style TargetType="Button">
@@ -663,10 +1850,75 @@ function Invoke-AddAppointmentForm {
 </Window>
 "@
     $reader = New-Object System.Xml.XmlNodeReader $formXaml
-    $window = [Windows.Markup.XamlReader]::Load($reader)
+    [Windows.Markup.XamlReader]::Load($reader)
+}
+
+function Update-AddAppointmentTypeUi {
+    param(
+        $ComboType,
+        $PanelTime,
+        $DateStart,
+        $DateEnd
+    )
+
+    $selectedItem = $ComboType.SelectedItem
+    $isTimed = ($null -ne $selectedItem -and $selectedItem.Tag -eq "▶")
+    $isSingleDay = ($null -ne $selectedItem -and ($selectedItem.Tag -eq "▶" -or $selectedItem.Tag -eq "★"))
+
+    if ($isTimed) {
+        $PanelTime.Visibility = [System.Windows.Visibility]::Visible
+    }
+    else {
+        $PanelTime.Visibility = [System.Windows.Visibility]::Collapsed
+    }
+
+    if ($isSingleDay) {
+        $DateEnd.SelectedDate = $DateStart.SelectedDate
+        $DateEnd.IsEnabled = $false
+    }
+    else {
+        $DateEnd.IsEnabled = $true
+    }
+}
+
+function Test-AddAppointmentInput {
+    param(
+        $TitleTextBox,
+        $DateStart,
+        [bool]$IsTimed,
+        $TimeStart,
+        $TimeEnd
+    )
+
+    if ([string]::IsNullOrWhiteSpace($TitleTextBox.Text)) {
+        [System.Windows.MessageBox]::Show("タイトルを入力してください。", "エラー", "OK", "Error")
+        return $false
+    }
+    if (-not $DateStart.SelectedDate) {
+        [System.Windows.MessageBox]::Show("開始日を選択してください。", "エラー", "OK", "Error")
+        return $false
+    }
+    if ($IsTimed) {
+        if (-not (Test-TimeText -Text $TimeStart.Text)) {
+            [System.Windows.MessageBox]::Show("開始時間の形式が正しくありません（例 09:00）", "形式エラー", "OK", "Warning")
+            return $false
+        }
+        if (-not (Test-TimeText -Text $TimeEnd.Text)) {
+            [System.Windows.MessageBox]::Show("終了時間の形式が正しくありません（例 10:00）", "形式エラー", "OK", "Warning")
+            return $false
+        }
+    }
+
+    return $true
+}
+
+# 予定追加フォームを表示する関数
+function Invoke-AddAppointmentForm {
+    $window = New-AddAppointmentWindow
 
     $comboType = $window.FindName("ComboType")
     $comboCat  = $window.FindName("ComboCat")
+    $comboCat.ItemsSource = Get-CategoryNames
     $txtTitle  = $window.FindName("TxtTitle")
     $dateStart = $window.FindName("DateStart")
     $dateEnd   = $window.FindName("DateEnd")
@@ -674,37 +1926,36 @@ function Invoke-AddAppointmentForm {
     $timeStart = $window.FindName("TimeStart")
     $timeEnd   = $window.FindName("TimeEnd")
     $txtMemo   = $window.FindName("TxtMemo")
+    $chkPrivate = $window.FindName("ChkPrivate")
+    $chkShowAsFree = $window.FindName("ChkShowAsFree")
     $btnSave   = $window.FindName("BtnSave")
     $btnCancel = $window.FindName("BtnCancel")
+
+    $settings = Get-AppSettings
+    Select-ComboBoxItemByTag -ComboBox $comboType -Tag $settings.addAppointmentTypeDefaultSymbol
+    if ($comboType.SelectedIndex -lt 0) { Select-ComboBoxItemByTag -ComboBox $comboType -Tag "◆" }
+    $comboCat.Text = [string]$settings.addAppointmentCategoryDefault
+    if ([string]::IsNullOrWhiteSpace($comboCat.Text) -and $comboCat.Items.Count -gt 0) { $comboCat.SelectedIndex = 0 }
+    $chkPrivate.IsChecked = [bool]$settings.addAppointmentPrivateDefault
+    $chkShowAsFree.IsChecked = [bool]$settings.addAppointmentShowAsFreeDefault
 
     # 初期値設定
     $today = Get-Date
     $dateStart.SelectedDate = $today
     $dateEnd.SelectedDate   = $today
 
-    # 期限タイプによる表示切り替え
     $updateUIByType = {
-        $selectedItem = $comboType.SelectedItem
-        if ($null -ne $selectedItem -and $selectedItem.Tag -eq "▶") {
-            # 予定日の場合：時間を表示、終了日を開始日に同期してロック
-            $panelTime.Visibility = [System.Windows.Visibility]::Visible
-            $dateEnd.SelectedDate = $dateStart.SelectedDate
-            $dateEnd.IsEnabled = $false
-        } else {
-            # それ以外：時間は非表示、終了日は自由に設定可能（終日とする）
-            $panelTime.Visibility = [System.Windows.Visibility]::Collapsed
-            $dateEnd.IsEnabled = $true
-        }
+        Update-AddAppointmentTypeUi -ComboType $comboType -PanelTime $panelTime -DateStart $dateStart -DateEnd $dateEnd
     }
 
     $comboType.Add_SelectionChanged({
         & $updateUIByType
     })
 
-    # 開始日が変更されたら予定日の場合は終了日も同期
+    # 単日扱い（予定日・参照用）の場合は終了日も同期
     $dateStart.Add_SelectedDateChanged({
         $selectedItem = $comboType.SelectedItem
-        if ($null -ne $selectedItem -and $selectedItem.Tag -eq "▶") {
+        if ($null -ne $selectedItem -and ($selectedItem.Tag -eq "▶" -or $selectedItem.Tag -eq "★")) {
             $dateEnd.SelectedDate = $dateStart.SelectedDate
         }
     })
@@ -714,79 +1965,52 @@ function Invoke-AddAppointmentForm {
 
     # 保存処理
     $btnSave.Add_Click({
-        # バリデーション
-        if ([string]::IsNullOrWhiteSpace($txtTitle.Text)) {
-            [System.Windows.MessageBox]::Show("タイトルを入力してください。", "エラー", "OK", "Error")
-            return
-        }
-        if (-not $dateStart.SelectedDate) {
-            [System.Windows.MessageBox]::Show("開始日を選択してください。", "エラー", "OK", "Error")
-            return
-        }
-        
         $selectedType = $comboType.SelectedItem
         if ($null -eq $selectedType) { return }
         $isTimed = ($selectedType.Tag -eq "▶")
 
+        if (-not (Test-AddAppointmentInput -TitleTextBox $txtTitle -DateStart $dateStart -IsTimed $isTimed -TimeStart $timeStart -TimeEnd $timeEnd)) {
+            return
+        }
+
         try {
-            # タイトル整形: Symbol［Category］Title
-            $symbol   = $selectedType.Tag
-            $category = $comboCat.Text
-            $formattedTitle = "$symbol［$category］$($txtTitle.Text)"
+            $formattedTitle = Format-AppointmentTitle -Symbol $selectedType.Tag -Category $comboCat.Text -Title $txtTitle.Text
 
-            $outlook = New-Object -ComObject Outlook.Application
-            $appt = $outlook.CreateItem(1) # olAppointmentItem
-
-            $appt.Subject = $formattedTitle
-            $appt.Body = $txtMemo.Text
-            
-            # デフォルトプロパティ設定
-            $appt.BusyStatus  = 0     # 0: olFree (空き時間)
-            $appt.Sensitivity = 2     # 2: olPrivate (非公開)
-            $appt.ReminderSet = $false # アラームなし
-            
             $sDate = $dateStart.SelectedDate
             $eDate = $dateEnd.SelectedDate
 
-            if ($isTimed) {
-                # 予定日 ▶ : 時間あり、終日=False
-                if ($timeStart.Text -notmatch '^\d{1,2}:\d{2}$') {
-                    [System.Windows.MessageBox]::Show("開始時間の形式が正しくありません（例 09:00）", "形式エラー", "OK", "Warning")
-                    return
-                }
-                if ($timeEnd.Text -notmatch '^\d{1,2}:\d{2}$') {
-                    [System.Windows.MessageBox]::Show("終了時間の形式が正しくありません（例 10:00）", "形式エラー", "OK", "Warning")
-                    return
-                }
-                $appt.AllDayEvent = $false
-                $appt.Start = $sDate.ToString("yyyy/MM/dd ") + $timeStart.Text
-                $appt.End   = $sDate.ToString("yyyy/MM/dd ") + $timeEnd.Text # 予定日は同日固定
-            } else {
-                # それ以外 : 終日=True
-                $appt.AllDayEvent = $true
-                $appt.Start = $sDate.ToString("yyyy/MM/dd 00:00:00")
-                $appt.End   = $eDate.AddDays(1).ToString("yyyy/MM/dd 00:00:00")
-            }
-
-            $appt.Save()
+            Add-OutlookAppointment -Subject $formattedTitle -Body $txtMemo.Text -StartDate $sDate -EndDate $eDate -IsTimed $isTimed -StartTime $timeStart.Text -EndTime $timeEnd.Text -IsPrivate $chkPrivate.IsChecked -ShowAsFree $chkShowAsFree.IsChecked
             Show-Toast "Outlookに予定を追加しました: $formattedTitle"
+            $window.DialogResult = $true
             $window.Close()
         } catch {
             [System.Windows.MessageBox]::Show("保存に失敗しました。詳細:`n$($_.Exception.Message)", "エラー", "OK", "Error")
         }
     })
 
-    $btnCancel.Add_Click({ $window.Close() })
-    $window.ShowDialog()
+    $btnCancel.Add_Click({
+            $window.DialogResult = $false
+            $window.Close()
+        })
+    if ($window.ShowDialog() -eq $true) {
+        Invoke-OutlookSync -SuccessPrefix "予定追加後の同期完了"
+    }
 }
 
 function Invoke-ViewForm {
-    param($title, $text)
+    param(
+        $title,
+        $text,
+        [int]$Width = 650,
+        [int]$Height = 500,
+        [int]$MinWidth = 320,
+        [int]$MinHeight = 300
+    )
     [xml]$vXaml = @"
     <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            Title="詳細" Height="500" Width="650"
-            WindowStartupLocation="CenterOwner" Background="#F0F0F0" FontFamily="Noto Sans JP" FontSize="12"
+            Title="詳細" Height="$Height" Width="$Width" MinWidth="$MinWidth" MinHeight="$MinHeight"
+            WindowStartupLocation="CenterOwner" Background="#F0F0F0" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
             ResizeMode="CanResizeWithGrip">
         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="16">
             <TextBlock Name="txtView" TextWrapping="Wrap" Foreground="#333333" LineHeight="20"/>
@@ -801,14 +2025,14 @@ function Invoke-ViewForm {
     [void]$v.ShowDialog()
 }
 
-function Invoke-LogForm {
-    param($task, $defaultDate, $editLog)
-    
+function New-LogWindow {
+    param($Task)
+
     [xml]$dXaml = @"
     <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            Title="ログ入力: $($task.タイトル -replace '&','&amp;')" Height="320" Width="350"
-            Background="#F5F5F5" Foreground="#333333" FontFamily="Noto Sans JP" FontSize="11"
+            Title="ログ入力: $($Task.タイトル -replace '&','&amp;')" Height="320" Width="350"
+            Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
             WindowStartupLocation="CenterOwner" ResizeMode="CanResize" MinWidth="320" MinHeight="300">
         <Grid Margin="12,8,12,12">
             <Grid.RowDefinitions>
@@ -836,7 +2060,35 @@ function Invoke-LogForm {
     </Window>
 "@
     $dReader = (New-Object System.Xml.XmlNodeReader $dXaml)
-    $d = [System.Windows.Markup.XamlReader]::Load($dReader)
+    [System.Windows.Markup.XamlReader]::Load($dReader)
+}
+
+function Initialize-LogFormFields {
+    param(
+        $DatePicker,
+        $TimeTextBox,
+        $ContentTextBox,
+        $DefaultDate,
+        $EditLog
+    )
+
+    if ($EditLog) {
+        $DatePicker.Text = $EditLog.date
+        if ($EditLog.time) { $TimeTextBox.Text = ($EditLog.time -replace '分$', '') }
+        $ContentTextBox.Text = $EditLog.content
+    }
+    elseif ($DefaultDate) {
+        $DatePicker.Text = $DefaultDate
+    }
+    else {
+        $DatePicker.Text = (Get-Date).ToString("yyyy/MM/dd")
+    }
+}
+
+function Invoke-LogForm {
+    param($task, $defaultDate, $editLog)
+    
+    $d = New-LogWindow -Task $task
     $d.Owner = $Form
 
     $dpDate = $d.FindName("dpDate")
@@ -844,43 +2096,15 @@ function Invoke-LogForm {
     $txtContent = $d.FindName("txtContent")
     $btnSave = $d.FindName("btnSave")
     
-    if ($editLog) {
-        $dpDate.Text = $editLog.date
-        if ($editLog.time) { $txtTime.Text = ($editLog.time -replace '分$', '') }
-        $txtContent.Text = $editLog.content
-    }
-    elseif ($defaultDate) {
-        $dpDate.Text = $defaultDate
-    }
-    else {
-        $dpDate.Text = (Get-Date).ToString("yyyy/MM/dd")
-    }
+    Initialize-LogFormFields -DatePicker $dpDate -TimeTextBox $txtTime -ContentTextBox $txtContent -DefaultDate $defaultDate -EditLog $editLog
     
     $btnSave.Add_Click({
-            [array]$logs = if (Test-Path $LogsFile) { Get-Content $LogsFile -Raw -Encoding UTF8 | ConvertFrom-Json }else { @() }
+            [array]$logs = Read-JsonArray -Path $LogsFile
             $saveDate = if ($dpDate.SelectedDate) { $dpDate.SelectedDate.ToString("yyyy/MM/dd") } else { $dpDate.Text }
         
-            $newLog = [PSCustomObject]@{ uid = $task.uid; date = $saveDate; content = $txtContent.Text; time = $txtTime.Text }
-        
-            if ($editLog) {
-                $idx = -1
-                for ($i = 0; $i -lt $logs.Count; $i++) {
-                    if ($logs[$i].uid -eq $editLog.uid -and $logs[$i].date -eq $editLog.date -and $logs[$i].time -eq $editLog.time -and $logs[$i].content -eq $editLog.content) {
-                        $idx = $i
-                        break
-                    }
-                }
-                if ($idx -ge 0) {
-                    $logs[$idx] = $newLog
-                }
-                else {
-                    $logs += $newLog
-                }
-            }
-            else {
-                $logs += $newLog
-            }
-            $logs | ConvertTo-Json | Out-File $LogsFile -Encoding UTF8
+            $newLog = New-WorkLog -Uid $task.uid -Date $saveDate -Content $txtContent.Text -Time $txtTime.Text
+            $logs = Upsert-WorkLog -Logs $logs -NewLog $newLog -EditLog $editLog
+            Write-JsonData -Path $LogsFile -Data $logs
         
             $d.DialogResult = $true
             $d.Close()
@@ -892,202 +2116,140 @@ function Invoke-LogForm {
     }
 }
 
+function Invoke-CompleteSchedulePicker {
+    param([array]$Tasks)
+
+    $items = Get-IncompleteSchedules -Schedules $Tasks
+    if ($items.Count -eq 0) {
+        Show-Toast "完了にできる未完了スケジュールがありません"
+        return $null
+    }
+
+    [xml]$xaml = @"
+    <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            Title="スケジュール完了" Height="190" Width="520"
+            Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
+            WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+        <Grid Margin="14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="完了にするスケジュール" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <ComboBox Name="ComboSchedule" Grid.Row="1" Height="28" DisplayMemberPath="DisplayText"/>
+            <TextBlock Name="TxtMemo" Grid.Row="2" TextWrapping="Wrap" Foreground="#666666" Margin="0,8,0,0"/>
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                <Button Name="BtnCancel" Content="キャンセル" Width="90" Height="28" Margin="0,0,8,0"/>
+                <Button Name="BtnOk" Content="完了にする" Width="100" Height="28" Background="#1f8d61" Foreground="White" BorderThickness="0"/>
+            </StackPanel>
+        </Grid>
+    </Window>
+"@
+
+    $reader = (New-Object System.Xml.XmlNodeReader $xaml)
+    $window = [System.Windows.Markup.XamlReader]::Load($reader)
+    $window.Owner = $Form
+
+    $combo = $window.FindName("ComboSchedule")
+    $memo = $window.FindName("TxtMemo")
+    $btnOk = $window.FindName("BtnOk")
+    $btnCancel = $window.FindName("BtnCancel")
+
+    $comboItems = @($items | ForEach-Object {
+            $_ | Add-Member -MemberType NoteProperty -Name DisplayText -Value "$($_.開始日) $($_.タイトル)" -Force
+            $_
+        })
+    $combo.ItemsSource = $comboItems
+    $combo.SelectedIndex = 0
+
+    $combo.Add_SelectionChanged({
+            if ($combo.SelectedItem) {
+                $memo.Text = "分類: $($combo.SelectedItem.分類) / 期限タイプ: $($combo.SelectedItem.期限タイプ)"
+            }
+        })
+    if ($combo.SelectedItem) {
+        $memo.Text = "分類: $($combo.SelectedItem.分類) / 期限タイプ: $($combo.SelectedItem.期限タイプ)"
+    }
+
+    $btnCancel.Add_Click({
+            $window.DialogResult = $false
+            $window.Close()
+        })
+    $btnOk.Add_Click({
+            if (-not $combo.SelectedItem) {
+                Show-Toast "スケジュールを選択してください"
+                return
+            }
+            $window.DialogResult = $true
+            $window.Close()
+        })
+
+    if ($window.ShowDialog() -eq $true) {
+        return $combo.SelectedItem
+    }
+
+    return $null
+}
+function Add-GanttFixedColumns {
+    $fixedCellStyle = New-GanttFixedCellStyle
+
+    $statusColumn = New-Object System.Windows.Controls.DataGridTemplateColumn
+    $statusColumn.Header = "ステータス"
+    $statusColumn.Width = $COL_WIDTH_STATUS
+    $statusColumn.CellTemplate = $Form.Resources["BadgeStatusTemplate"]
+    $statusColumn.CellStyle = $fixedCellStyle
+    $GridGantt.Columns.Add($statusColumn)
+
+    $categoryColumn = New-Object System.Windows.Controls.DataGridTemplateColumn
+    $categoryColumn.Header = "分類"
+    $categoryColumn.Width = $COL_WIDTH_CAT
+    $categoryColumn.CellTemplate = $Form.Resources["BadgeCategoryTemplate"]
+    $categoryColumn.CellStyle = $fixedCellStyle
+    $GridGantt.Columns.Add($categoryColumn)
+
+    $titleColumn = New-Object System.Windows.Controls.DataGridTemplateColumn
+    $titleColumn.Header = "スケジュール名"
+    $titleColumn.SortMemberPath = "スケジュール名"
+    $titleColumn.Width = $COL_WIDTH_TITLE
+    $titleColumn.CellStyle = $fixedCellStyle
+    $titleColumn.HeaderStyle = New-GanttHeaderStyle -Background $CLR_TITLE_CELL_BG
+    $titleColumn.CellTemplate = New-GanttTitleCellTemplate
+    $GridGantt.Columns.Add($titleColumn)
+}
+
+function Add-GanttDateColumn {
+    param(
+        [datetime]$Date,
+        [string]$TodayText
+    )
+
+    $dateText = $Date.ToString("yyyy/MM/dd")
+    $cellBackground = Get-GanttDateCellBackground -Date $Date -TodayText $TodayText
+    $headerTheme = Get-GanttDateHeaderTheme -Date $Date -TodayText $TodayText
+
+    $column = New-Object System.Windows.Controls.DataGridTemplateColumn
+    $column.Header = $Date.ToString("d`n(ddd)")
+    $column.SortMemberPath = $dateText
+    $column.HeaderStyle = New-GanttHeaderStyle -Background $headerTheme.Background -Foreground $headerTheme.Foreground
+    $column.CellStyle = New-GanttDateCellStyle -DateText $dateText -CellBackground $cellBackground
+    $column.CellTemplate = New-GanttDateCellTemplate -DateText $dateText
+
+    $GridGantt.Columns.Add($column)
+}
+
 function Build-GanttColumns {
     param($startDate, $days)
-    
+
     $GridGantt.Columns.Clear()
-    
-    $fixedCellStyle = [System.Windows.Markup.XamlReader]::Parse(@"
-<Style TargetType="DataGridCell" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-    <Setter Property="Background" Value="Transparent"/>
-    <Setter Property="BorderBrush" Value="Transparent"/>
-    <Setter Property="BorderThickness" Value="1"/>
-    <Style.Triggers>
-        <Trigger Property="IsSelected" Value="True">
-            <Setter Property="BorderBrush" Value="$CLR_SELECTED_BORDER"/>
-        </Trigger>
-        <DataTrigger Binding="{Binding ステータス}" Value="完了">
-            <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
-        </DataTrigger>
-        <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
-            <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
-        </DataTrigger>
-    </Style.Triggers>
-</Style>
-"@)
-    
-    # 1. ステータス
-    $col1 = New-Object System.Windows.Controls.DataGridTemplateColumn
-    $col1.Header = "ステータス"
-    $col1.Width = $COL_WIDTH_STATUS
-    $col1.CellTemplate = $Form.Resources["BadgeStatusTemplate"]
-    $col1.CellStyle = $fixedCellStyle
-    $GridGantt.Columns.Add($col1)
-    
-    # 2. 分類
-    $col2 = New-Object System.Windows.Controls.DataGridTemplateColumn
-    $col2.Header = "分類"
-    $col2.Width = $COL_WIDTH_CAT
-    $col2.CellTemplate = $Form.Resources["BadgeCategoryTemplate"]
-    $col2.CellStyle = $fixedCellStyle
-    $GridGantt.Columns.Add($col2)
-    
-    # 3. スケジュール名
-    $col3 = New-Object System.Windows.Controls.DataGridTemplateColumn
-    $col3.Header = "スケジュール名"
-    $col3.SortMemberPath = "スケジュール名"
-    $col3.Width = $COL_WIDTH_TITLE
-    $col3.CellStyle = $fixedCellStyle
-    # ヘッダー設定（同期タブと統一）
-    $col3HeaderStyle = New-Object System.Windows.Style -ArgumentList ([System.Windows.Controls.Primitives.DataGridColumnHeader])
-    $col3HeaderStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BackgroundProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($CLR_TITLE_CELL_BG))))
-    $col3HeaderStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::FontWeightProperty, [System.Windows.FontWeights]::SemiBold)))
-    $col3HeaderStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::HorizontalContentAlignmentProperty, [System.Windows.HorizontalAlignment]::Center)))
-    $col3HeaderStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::PaddingProperty, [System.Windows.Thickness]::new(6, 4, 6, 4))))
-    $col3HeaderStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BorderThicknessProperty, [System.Windows.Thickness]::new(0, 0, 1, 1))))
-    $col3HeaderStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BorderBrushProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($CLR_BORDER))))
-    $col3.HeaderStyle = $col3HeaderStyle
+    Add-GanttFixedColumns
 
-    $col3.CellTemplate = [System.Windows.Markup.XamlReader]::Parse(@"
-<DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-    <Grid Background="Transparent">
-        <TextBlock Text="{Binding スケジュール名}" VerticalAlignment="Center" Margin="6,0" TextWrapping="NoWrap">
-            <TextBlock.ToolTip>
-                <ToolTip>
-                    <TextBlock Text="{Binding メモ}" TextWrapping="Wrap" MaxWidth="300" Foreground="#333333"/>
-                </ToolTip>
-            </TextBlock.ToolTip>
-        </TextBlock>
-        <Polygon Points="7,0 7,7 0,0" Fill="#0078D7" HorizontalAlignment="Right" VerticalAlignment="Top" 
-                 Margin="0,-2,0,0" Visibility="{Binding MemoVis}"/>
-    </Grid>
-</DataTemplate>
-"@)
-    $GridGantt.Columns.Add($col3)
-    
-    $todayStr = (Get-Date).ToString("yyyy/MM/dd")
+    $todayText = (Get-Date).ToString("yyyy/MM/dd")
 
-    # 日付カラム追加
     for ($i = 0; $i -lt $days; $i++) {
-        $d = $startDate.AddDays($i)
-        $dStr = $d.ToString("yyyy/MM/dd")
-        $isToday = ($dStr -eq $todayStr)
-        $isWeekend = ($d.DayOfWeek -eq 'Saturday' -or $d.DayOfWeek -eq 'Sunday')
-        $isOddMonth = ($d.Month % 2 -eq 1)
-        
-        # --- Determine cell background color ---
-        $cellBg = $CLR_GANTT_EVEN_BG
-        if ($isToday) {
-            $cellBg = $CLR_GANTT_TODAY_BG
-        }
-        elseif ($isWeekend) {
-            if ($isOddMonth) { $cellBg = $CLR_GANTT_WE_ODD_BG }
-            else { $cellBg = $CLR_GANTT_WE_EVEN_BG }
-        }
-        elseif ($isOddMonth) {
-            $cellBg = $CLR_GANTT_ODD_BG
-        }
-        
-        # --- Determine header style ---
-        $headerBg = $CLR_GANTT_HDR_DEFAULT_BG
-        $headerFg = $CLR_GANTT_HDR_FG
-        if ($isToday) {
-            $headerBg = $CLR_GANTT_HDR_TODAY_BG
-            $headerFg = $CLR_GANTT_HDR_TODAY_FG
-        }
-        elseif ($isOddMonth) {
-            $headerBg = $CLR_GANTT_HDR_ODD_BG
-        }
-        
-        $col = New-Object System.Windows.Controls.DataGridTemplateColumn
-        $col.Header = $d.ToString("d`n(ddd)")
-        $col.SortMemberPath = $dStr
-        
-        # Apply header style
-        $headerStyle = New-Object System.Windows.Style([System.Windows.Controls.Primitives.DataGridColumnHeader])
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BackgroundProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($headerBg))))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::ForegroundProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($headerFg))))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::PaddingProperty, [System.Windows.Thickness]::new(6, 4, 6, 4))))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::FontWeightProperty, [System.Windows.FontWeights]::SemiBold)))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::HorizontalContentAlignmentProperty, [System.Windows.HorizontalAlignment]::Center)))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.TextBlock]::TextAlignmentProperty, [System.Windows.TextAlignment]::Center)))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::VerticalContentAlignmentProperty, [System.Windows.VerticalAlignment]::Center)))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BorderThicknessProperty, [System.Windows.Thickness]::new(0, 0, 1, 1))))
-        $headerStyle.Setters.Add((New-Object System.Windows.Setter([System.Windows.Controls.Primitives.DataGridColumnHeader]::BorderBrushProperty, [System.Windows.Media.BrushConverter]::new().ConvertFrom($CLR_BORDER))))
-        $col.HeaderStyle = $headerStyle
-        
-        $cellStyleXaml = @"
-<Style TargetType="DataGridCell" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- WPFテーマのIsSelectedトリガーによる論理プロパティ上書きを完全遮断するための独立テンプレート -->
-    <Setter Property="Template">
-        <Setter.Value>
-            <ControlTemplate TargetType="DataGridCell">
-                <Border Background="{TemplateBinding Background}" 
-                        BorderThickness="{TemplateBinding BorderThickness}" 
-                        BorderBrush="{TemplateBinding BorderBrush}" 
-                        SnapsToDevicePixels="True">
-                    <ContentPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-                </Border>
-            </ControlTemplate>
-        </Setter.Value>
-    </Setter>
-    <Setter Property="Background" Value="$cellBg"/>
-    <Setter Property="BorderBrush" Value="Transparent"/>
-    <Setter Property="BorderThickness" Value="1"/>
-    <Style.Triggers>
-        
-        <!-- 枠線描画 -->
-        <Trigger Property="IsSelected" Value="True">
-            <Setter Property="BorderBrush" Value="$CLR_SELECTED_BORDER"/>
-        </Trigger>
-        
-        <DataTrigger Binding="{Binding [${dStr}_Bg]}" Value="$CLR_STA_OVERDUE_BG">
-            <Setter Property="Background" Value="$CLR_STA_OVERDUE_BG"/>
-        </DataTrigger>
-        <DataTrigger Binding="{Binding [${dStr}_Bg]}" Value="$CLR_STA_OVERDUE_ABS_BG">
-            <Setter Property="Background" Value="$CLR_STA_OVERDUE_ABS_BG"/>
-        </DataTrigger>
-        <DataTrigger Binding="{Binding [${dStr}_Bg]}" Value="$CLR_GANTT_PAST_BG">
-            <Setter Property="Background" Value="$CLR_GANTT_PAST_BG"/>
-        </DataTrigger>
-        
-        <!-- 記号の背景色 -->
-        <DataTrigger Binding="{Binding [${dStr}_Bg]}" Value="#FF9900">
-            <Setter Property="Background" Value="#FF9900"/>
-        </DataTrigger>
-        <DataTrigger Binding="{Binding [${dStr}_Bg]}" Value="#EA4335">
-            <Setter Property="Background" Value="#EA4335"/>
-        </DataTrigger>
-        <DataTrigger Binding="{Binding [${dStr}_Bg]}" Value="$CLR_ROW_DISPLAY">
-            <Setter Property="Background" Value="$CLR_ROW_DISPLAY"/>
-        </DataTrigger>
-    </Style.Triggers>
-</Style>
-"@
-        $col.CellStyle = [System.Windows.Markup.XamlReader]::Parse($cellStyleXaml)
-
-        # Style definition for dynamic Gantt cells (ToolTip via DataTemplate)
-        $templateXaml = @"
-<DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-    <Grid Background="Transparent" ToolTipService.IsEnabled="{Binding [${dStr}_Vis]}">
-        <Grid.ToolTip>
-            <ToolTip>
-                <TextBlock Text="{Binding [${dStr}_TT]}" TextWrapping="Wrap" MaxWidth="300" />
-            </ToolTip>
-        </Grid.ToolTip>
-        <TextBlock Text="{Binding [$dStr]}" 
-                   HorizontalAlignment="Center" VerticalAlignment="Center" 
-                   FontWeight="Bold" FontSize="11" Foreground="$CLR_SYMBOL_FG" FontFamily="$FONT_GANTT"/>
-        <!-- Combined Info Mark (Top-Right Blue) -->
-        <Polygon Points="7,0 7,7 0,0" Fill="#0078D7" HorizontalAlignment="Right" VerticalAlignment="Top" 
-                 Visibility="{Binding [${dStr}_InfoVis]}"/>
-    </Grid>
-</DataTemplate>
-"@
-        # テンプレート適用
-        $col.CellTemplate = [System.Windows.Markup.XamlReader]::Parse($templateXaml)
-        $GridGantt.Columns.Add($col)
+        Add-GanttDateColumn -Date ($startDate.AddDays($i)) -TodayText $todayText
     }
 }
 
@@ -1099,16 +2261,7 @@ function Refresh-UI {
     # === 同期シート・作業ログ ===
     $GridSync.ItemsSource = [System.Collections.ArrayList]@($data.parsed)
     
-    # ログ表示用のデータを準備（最新順にソートし、タイトルを紐付け、表示時間を整形）
-    $displayLogs = foreach ($l in ($data.logs | Sort-Object date -Descending)) {
-        $taskEntry = $data.parsed | Where-Object { $_.uid -eq $l.uid } | Select-Object -First 1
-        $title = if ($taskEntry) { $taskEntry.タイトル } else { "不明なスケジュール" }
-        
-        # タイトルと表示時間をプロパティとして追加
-        $l | Add-Member -MemberType NoteProperty -Name "title" -Value $title -Force
-        $timeStr = if ($l.time) { if ($l.time -match '分$') { $l.time } else { "$($l.time)分" } } else { "0分" }
-        $l | Add-Member -MemberType NoteProperty -Name "displayTime" -Value $timeStr -Force -PassThru
-    }
+    $displayLogs = ConvertTo-DisplayWorkLogs -Logs $data.logs -Tasks $data.parsed
     $GridLogs.ItemsSource = [System.Collections.ArrayList]@($displayLogs)
     
     # === ガントチャート ===
@@ -1117,352 +2270,175 @@ function Refresh-UI {
     $days = [int]($GanttDaysCombo.Text)
     if ($days -eq 0) { $days = 35 }
 
+    $suppressWeekendScheduleHighlight = ($ChkSuppressWeekendHighlight -and $ChkSuppressWeekendHighlight.IsChecked)
+
     Build-GanttColumns -startDate $startDate -days $days
-    
-    $todayStr = (Get-Date).ToString("yyyy/MM/dd")
-    $dt = New-Object System.Data.DataTable
-    [void]$dt.Columns.Add("ステータス"); [void]$dt.Columns.Add("分類"); [void]$dt.Columns.Add("スケジュール名"); [void]$dt.Columns.Add("メモ"); [void]$dt.Columns.Add("OriginalTask", [object]); [void]$dt.Columns.Add("MemoVis");
-    for ($i = 0; $i -lt $days; $i++) { 
-        $tdateStr = $startDate.AddDays($i).ToString("yyyy/MM/dd")
-        [void]$dt.Columns.Add($tdateStr)
-        [void]$dt.Columns.Add("${tdateStr}_TT")
-        [void]$dt.Columns.Add("${tdateStr}_Vis", [bool])
-        [void]$dt.Columns.Add("${tdateStr}_Bg")
-        [void]$dt.Columns.Add("${tdateStr}_InfoVis")
-    }
-    
-    # A4: フィルタリング
-    $taskArray = $data.parsed
-    
-    # 完了・廃棄は直近15件ずつ保持する（配列として確実に取得するために @() を使用）
-    $compKeep = @($taskArray | Where-Object { $_.ステータス -eq "完了" } | Select-Object -Last 15 | ForEach-Object { $_.uid })
-    $discKeep = @($taskArray | Where-Object { $_.ステータス -eq "廃棄" } | Select-Object -Last 15 | ForEach-Object { $_.uid })
-    $uidsToKeep = $compKeep + $discKeep
-    
-    foreach ($p in $taskArray) {
-        # 完了・廃棄ステータスの制限（直近のみ表示）
-        if (($p.ステータス -eq "完了" -or $p.ステータス -eq "廃棄") -and $uidsToKeep -notcontains $p.uid) { continue }
-        
-        # 未着手スケジュールのフィルタリング（期限が遠すぎるものは非表示: TODAY + 44日）
-        if ($p.ステータス -eq "未着手" -and $p.終了日 -ne "") {
-            $endLimitStr = (Get-Date).AddDays(44).ToString("yyyy/MM/dd")
-            if ($p.終了日 -gt $endLimitStr) { continue }
-        }
-        
-        $row = $dt.NewRow()
-        $row["ステータス"] = $p.ステータス; $row["分類"] = $p.分類; $row["スケジュール名"] = $p.タイトル; $row["メモ"] = $p.メモ; $row["OriginalTask"] = $p
-        $row["MemoVis"] = if (-not [string]::IsNullOrWhiteSpace($p.メモ) -and $p.メモ -ne "") { "Visible" } else { "Collapsed" }
-        
-        $pLogs = @($data.logs | Where-Object { $_.uid -eq $p.uid }) 
-        $lastWorkDate = ""
-        if ($pLogs.Count -gt 0) {
-            $lastWorkDate = ($pLogs | Sort-Object date -Descending)[0].date
-        }
-        
-        for ($i = 0; $i -lt $days; $i++) {
-            $dStr = $startDate.AddDays($i).ToString("yyyy/MM/dd")
-            $hasLog = @($pLogs | Where-Object { $_.date -eq $dStr }).Count -gt 0
-            $inPeriod = ($p.開始日 -ne "" -and $p.終了日 -ne "" -and $dStr -ge $p.開始日 -and $dStr -le $p.終了日)
-            if ($p.開始日 -eq "" -and $p.終了日 -ne "" -and $dStr -eq $p.終了日) { $inPeriod = $true }
-
-            $sym = ""
-            $deadline = $p.終了日
-            if ($p.期限タイプ -eq "絶対期限" -and $p.終了日 -ne "") { 
-                try { $deadline = ([datetime]$p.終了日).AddDays(1).ToString("yyyy/MM/dd") } catch {}
-            }
-            
-            if ($p.期限タイプ -eq "参照用") {
-                if ($inPeriod -or $dStr -eq $deadline) { $sym = "★" }
-            }
-            else {
-                if ($hasLog) {
-                    if ($p.期限タイプ -ne "予定日" -and $p.ステータス -eq "完了" -and $dStr -eq $lastWorkDate) {
-                        $sym = "◉"
-                    }
-                    elseif ($p.期限タイプ -eq "予定日" -and $dStr -eq $deadline) {
-                        $sym = "▶"
-                    }
-                    elseif ($inPeriod) {
-                        $sym = "■"
-                    }
-                    else {
-                        $sym = "▲"
-                    }
-                }
-                else {
-                    if ($p.期限タイプ -eq "絶対期限" -and $dStr -eq $deadline) {
-                        $sym = "✕"
-                    }
-                    elseif ($p.期限タイプ -eq "予定日" -and $dStr -eq $deadline) {
-                        $sym = "▷"
-                    }
-                    elseif ($inPeriod) {
-                        $sym = "□"
-                    }
-                    else {
-                        if ($p.ステータス -ne "完了" -and $deadline -ne "" -and $dStr -gt $deadline -and $dStr -lt $todayStr) {
-                            if ($p.期限タイプ -ne "予定日") {
-                                $sym = "・"
-                            }
-                            else {
-                                $sym = "＊"
-                            }
-                        }
-                    }
-                }
-                
-                if ($dStr -eq $deadline -and $sym -ne "") {
-                    if ($p.期限タイプ -eq "推奨期限") { $sym += "‼" }
-                    if ($p.期限タイプ -eq "目安期限") { $sym += "❘" }
-                }
-            }
-            
-            # --- ToolTip Logs + Time Info Construction ---
-            $logText = ""
-            if ($hasLog -or ($dStr -eq $deadline -and ($p.開始時間 -ne "" -or $p.終了時間 -ne ""))) {
-                $timeInfo = ""
-                if ($dStr -eq $deadline) {
-                    if ($p.開始時間 -ne "" -and $p.終了時間 -ne "") { $timeInfo = "$($p.開始時間)～$($p.終了時間)`n`n" }
-                    elseif ($p.開始時間 -eq "" -and $p.終了時間 -ne "") { $timeInfo = "～$($p.終了時間)`n`n" }
-                    elseif ($p.終了時間 -eq "" -and $p.開始時間 -ne "") { $timeInfo = "$($p.開始時間)～`n`n" }
-                }
-
-                $logEntries = @()
-                if ($hasLog) {
-                    $logsForDay = $pLogs | Where-Object { $_.date -eq $dStr }
-                    foreach ($l in $logsForDay) {
-                        $lTime = if ($l.time) { if ($l.time -match '分$') { $l.time } else { "$($l.time)分" } } else { "0分" }
-                        $logEntries += "作業時間：$lTime`n$($l.content)"
-                    }
-                }
-                
-                $logJoin = $logEntries -join "`n`n"
-                $logText = $timeInfo + $logJoin
-                $logText = $logText.Trim()
-            }
-            
-            $bg = "Transparent"
-            # 今日より前の日付（過去）を紫色にする
-            if ($dStr -lt $todayStr) { $bg = $CLR_GANTT_PAST_BG }
-
-            if ($sym -ne "") {
-                if ($p.ステータス -eq "完了") {
-                    $bg = "Transparent"
-                }
-                elseif ($sym -match "✕") {
-                    $bg = "#EA4335" # Red
-                }
-                elseif ($sym -eq "★") {
-                    $bg = $CLR_ROW_DISPLAY # Yellow
-                }
-                elseif ($sym -eq "・") {
-                    $bg = $CLR_STA_OVERDUE_BG # Light Pink
-                }
-                elseif ($sym -match "＊") {
-                    $bg = $CLR_STA_OVERDUE_ABS_BG # Light Red
-                }
-                else {
-                    $bg = "#FF9900" # Orange
-                }
-            }
-            
-            $row[$dStr] = $sym
-            $row["${dStr}_Bg"] = $bg
-            $row["${dStr}_TT"] = $logText
-            $row["${dStr}_Vis"] = ($logText -ne "")
-            
-            # 統合コーナーマーク（右上・青）：ログがある場合、または時間設定（開始・終了）がある場合（期限日）
-            $hasTimeOnThisDay = ($dStr -eq $deadline -and ($p.開始時間 -ne "" -or $p.終了時間 -ne ""))
-            $row["${dStr}_InfoVis"] = if ($hasLog -or $hasTimeOnThisDay) { "Visible" } else { "Collapsed" }
-        }
-        [void]$dt.Rows.Add($row)
-    }
-    $GridGantt.ItemsSource = $dt.DefaultView
+    $GridGantt.ItemsSource = ConvertTo-GanttDataView -Tasks $data.parsed -Logs $data.logs -StartDate $startDate -Days $days -SuppressWeekendScheduleHighlight $suppressWeekendScheduleHighlight
 }
 
-# --- Events ---
-$BtnSync.Add_Click({
-        $BtnSync.IsEnabled = $false
-        $BtnSync.Content = "同期中..."
-        try {
-            $outlook = New-Object -ComObject Outlook.Application
-            $namespace = $outlook.GetNamespace("MAPI")
-        
-            $calendar = $null
-            $syncedAccount = "" # ★同期したアカウント名を保持する変数を追加
+function Invoke-OutlookSync {
+    param(
+        [string]$SuccessPrefix = "同期完了"
+    )
 
-            # 先頭でメアドが指定されているかチェック
-            if (-not [string]::IsNullOrWhiteSpace($TARGET_OUTLOOK_EMAIL)) {
-                $targetStore = $null
-                foreach ($store in $namespace.Stores) {
-                    if ($store.DisplayName -eq $TARGET_OUTLOOK_EMAIL) {
-                        $targetStore = $store
-                        break
-                    }
-                }
-                if ($null -eq $targetStore) {
-                    throw "指定したアカウント（$TARGET_OUTLOOK_EMAIL）が見つかりません。"
-                }
-                $calendar = $targetStore.GetDefaultFolder(9)
-                $syncedAccount = $targetStore.DisplayName # 指定したメアドを記録
+    $previousContent = $BtnSync.Content
+    $BtnSync.IsEnabled = $false
+    $BtnSync.Content = "同期中..."
+
+    try {
+        $syncData = Get-OutlookScheduleSyncData -TargetEmail $TARGET_OUTLOOK_EMAIL
+        Write-JsonData -Path $TasksFile -Data $syncData.Tasks
+        Refresh-UI
+
+        Show-Toast "$SuccessPrefix ($($syncData.Count) 件) - アカウント: $($syncData.Account)"
+        return $true
+    }
+    catch {
+        $msg = $_.Exception.Message
+        "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - 同期エラー: $msg" | Out-File (Join-Path $ScriptPath "error.log") -Append -Encoding UTF8
+        Show-Toast "同期失敗: $msg"
+        return $false
+    }
+    finally {
+        $BtnSync.IsEnabled = $true
+        $BtnSync.Content = $previousContent
+    }
+}
+
+function Handle-SyncGridDoubleClick {
+    if ($GridSync.CurrentColumn -and $GridSync.CurrentColumn.Header -eq "スケジュール名") {
+        if ($GridSync.CurrentItem) {
+            Invoke-LogForm -task $GridSync.CurrentItem
+        }
+    }
+}
+
+function Handle-GanttGridDoubleClick {
+    if (-not $GridGantt.CurrentCell.IsValid) {
+        return
+    }
+
+    $col = $GridGantt.CurrentColumn
+    $item = $GridGantt.CurrentCell.Item
+    $title = $item["スケジュール名"]
+    $taskObj = $item["OriginalTask"]
+
+    if ($col.Header -eq "スケジュール名") {
+        if ($taskObj) {
+            if ($ChkLogMode.IsChecked) {
+                Invoke-LogForm -task $taskObj
             }
             else {
-                # 指定がない場合は既定のアカウントを取得
-                $calendar = $namespace.GetDefaultFolder(9)
-                $syncedAccount = $calendar.Store.DisplayName # 既定アカウントのメアドを自動取得
+                $memo = $item["メモ"]
+                if (-not [string]::IsNullOrWhiteSpace($memo)) {
+                    Invoke-ViewForm -title "メモ - $title" -text $memo -Width 350 -Height 320
+                }
             }
+        }
+    }
+    elseif ($col -is [System.Windows.Controls.DataGridTemplateColumn] -and $col.SortMemberPath) {
+        $dateText = $col.SortMemberPath
+        if ($ChkLogMode.IsChecked -and $taskObj) {
+            Invoke-LogForm -task $taskObj -defaultDate $dateText
+            return
+        }
 
-            $items = $calendar.Items
-            $items.IncludeRecurrences = $true
-            $items.Sort("[開始]")
-        
-            $filter = "[Start] >= '$((Get-Date).AddMonths(-36).ToString("MM/dd/yyyy"))' AND [End] <= '$((Get-Date).AddMonths(36).ToString("MM/dd/yyyy"))'"
-            $count = 0
-            $tasks = foreach ($item in $items.Restrict($filter)) {
-                if ($item -isnot [System.__ComObject]) { continue }
-                $count++
-                [PSCustomObject]@{ uid = $item.EntryID; title = $item.Subject; start = $item.Start.ToString("yyyy/MM/dd"); end = if ($item.AllDayEvent) { $item.End.AddDays(-1).ToString("yyyy/MM/dd") }else { $item.End.ToString("yyyy/MM/dd") }; startTime = if ($item.AllDayEvent) { "" }else { $item.Start.ToString("HH:mm") }; endTime = if ($item.AllDayEvent) { "" }else { $item.End.ToString("HH:mm") }; memo = (Format-Memo $item.Body); categories = $item.Categories }
-            }
-            $tasks | ConvertTo-Json | Out-File $TasksFile -Encoding UTF8
-            Refresh-UI
-        
-            # ★ここで下のステータスバーに同期したアカウント名を表示します！
-            Show-Toast "同期完了 ($count 件) - アカウント: $syncedAccount"
+        $text = $item["${dateText}_TT"]
+        if (-not [string]::IsNullOrWhiteSpace($text)) {
+            Invoke-ViewForm -title "作業ログ ($dateText) - $title" -text $text -Width 350 -Height 320
         }
-        catch {
-            $msg = $_.Exception.Message
-            "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - 同期エラー: $msg" | Out-File (Join-Path $ScriptPath "error.log") -Append -Encoding UTF8
-            Show-Toast "同期失敗: $msg"
-        }
-        finally {
-            $BtnSync.IsEnabled = $true
-            $BtnSync.Content = "Outlook同期"
-        }
+    }
+}
+
+function Handle-LogsGridDoubleClick {
+    if (-not $GridLogs.CurrentItem) {
+        return
+    }
+
+    $logObj = $GridLogs.CurrentItem
+    $data = Get-AllData
+    $taskObj = $data.parsed | Where-Object { $_.uid -eq $logObj.uid } | Select-Object -First 1
+    if ($taskObj) {
+        Invoke-LogForm -task $taskObj -editLog $logObj
+    }
+}
+
+function Complete-SelectedSchedule {
+    $data = Get-AllData
+    $task = Invoke-CompleteSchedulePicker -Tasks $data.parsed
+    if (-not $task) {
+        return
+    }
+
+    Set-OutlookAppointmentCompleted -EntryId $task.uid
+    $schedules = Read-JsonArray -Path $TasksFile
+    $schedules = Set-CachedScheduleCompleted -Schedules $schedules -Uid $task.uid
+    Write-JsonData -Path $TasksFile -Data $schedules
+    Show-Toast "完了にしました: $($task.タイトル)"
+    Invoke-OutlookSync -SuccessPrefix "完了登録後の同期完了"
+}
+# --- Events ---
+$BtnSync.Add_Click({
+        Invoke-OutlookSync
     })
 
 $GanttDatePicker.Add_SelectedDateChanged({ Refresh-UI })
 $GanttDaysCombo.Add_DropDownClosed({ Refresh-UI })
+$ChkSuppressWeekendHighlight.Add_Checked({ Refresh-UI })
+$ChkSuppressWeekendHighlight.Add_Unchecked({ Refresh-UI })
+
+$BtnComplete.Add_Click({
+        try {
+            Complete-SelectedSchedule
+        }
+        catch {
+            Show-Toast "完了処理に失敗: $($_.Exception.Message)"
+        }
+    })
 
 $BtnHelp.Add_Click({
-        $helpText = @"
-【ガントチャート使用時の留意事項・詳細リファレンス】
-■ Outlook同期の手順・要件
-・デスクトップ版 Outlook（Classic版）がインストールされ、アカウントがセットアップされている必要があります。
-・Outlookにログインした状態であれば、本ツールの「Outlook同期」ボタンを押すだけで同期が始まります。
-・Web版やスマホ版での変更がすぐに反映されない場合は、デスクトップ版Outlook側で一度「すべて送信/受信」を実行して最新の状態に更新してください。
-
-■ Outlook同期とステータス
-・同期範囲：前後36ヶ月分（3年間）を同期します。
-・優先順位：Outlookの「カテゴリー」が最優先されます。
-　- 「完了」カテゴリー ⇒ ステータス「完了」
-　- 「廃止」カテゴリー ⇒ ステータス「廃棄」
-　- 指定なし ⇒ 「未着手」（タイトルに★があれば「表示」）
-・タイトル記号：タイトル内に「★」=参照用、「✕」=絶対期限、「◆」=推奨期限、「◇」=目安期限、「▶」=予定日として扱われます。
-・絶対期限の仕様: 終了日の次の日が絶対期限日として扱う。（当日は作業できない前提）
-・メモの整形：OutlookのHTML形式メモは、タグを除去してプレーンテキストとして表示します。
-
-■ フィルタリングの仕様
-・未着手フィルタ：ステータスが「未着手」かつ期限（終了日）が【今日 + 44日】より先の予定は、一覧をスッキリさせるため非表示になります。
-・完了/廃棄表示：それぞれ最新の【直近15件】のみが表示されます。
-
-■ 記号とカラーのルール
-・塗りつぶし（▶■▲）：その日に「作業ログ」が存在することを示します。
-・白抜き（▷□△）：作業ログがない「予定のみ」の状態を示します。
-・特殊記号：
-　- ✕：期間の【翌日】に表示されます。
-　- ◉：完了ステータスの際、最後に作業ログを入力した日に表示されます。
-　- ‼/❘：タイトルの記号に応じた推奨/目安期限の補助記号です。
-・コーナーマーク（右上の青三角）：
-　- スケジュール名列：メモが存在する場合に表示。
-　- ガントセル：作業ログがある、または期限日に時間設定がある場合に表示。
-
-■ 便利機能・操作
-・ダブルクリック：
-　- スケジュール名：作業ログ入力（ログモードON時）またはメモ表示。
-　- ガントセル：その日の作業ログ詳細を表示。
-・表示リセット：列の幅やスクロールを初期状態に戻します。
-
-■ デフォルトのカスタマイズ（コード編集）
-・色の変更：スクリプト冒頭の「カラー設定」セクション（$CLR_...）で管理しています。
-・列の幅：$COL_WIDTH_TITLE 等の変数で調整できます。
-
-■ データ管理
-・schedules.json：Outlook同期データ（キャッシュ）。
-・logs.json：入力した作業ログ。
-※バックアップ時はこの2ファイルを保存してください。
-"@
-        Invoke-ViewForm -title "留意事項・ヘルプ" -text $helpText
+        Invoke-ViewForm -title "留意事項・ヘルプ" -text (Get-HelpText)
     })
 
 $BtnResetView.Add_Click({
-        # GridSync のリセット
-        $GridSync.Columns | ForEach-Object { $_.Width = [System.Windows.Controls.DataGridLength]::Auto }
-        if ($GridSync.Columns.Count -gt 1) { $GridSync.Columns[1].Width = $COL_WIDTH_TITLE } # スケジュール名
-        if ($GridSync.Columns.Count -gt 2) { $GridSync.Columns[2].Width = $COL_WIDTH_STATUS } # ステータス
-        if ($GridSync.Columns.Count -gt 3) { $GridSync.Columns[3].Width = $COL_WIDTH_TYPE }   # 期限タイプ
-        if ($GridSync.Columns.Count -gt 4) { $GridSync.Columns[4].Width = $COL_WIDTH_CAT }    # 分類
-        if ($GridSync.Columns.Count -gt 5) { $GridSync.Columns[5].Width = $COL_WIDTH_DATE }   # 開始日
-        if ($GridSync.Columns.Count -gt 6) { $GridSync.Columns[6].Width = $COL_WIDTH_DATE }   # 終了日
-        if ($GridSync.Columns.Count -gt 7) { $GridSync.Columns[7].Width = $COL_WIDTH_TIME }   # 開始
-        if ($GridSync.Columns.Count -gt 8) { $GridSync.Columns[8].Width = $COL_WIDTH_TIME }   # 終了
-        # 最後の列（メモ）を Star にする
-        if ($GridSync.Columns.Count -gt 9) { $GridSync.Columns[9].Width = $COL_WIDTH_MEMO }   # メモ
-        for ($i = 0; $i -lt $GridSync.Columns.Count; $i++) { $GridSync.Columns[$i].DisplayIndex = $i }
-
-        # GridLogs のリセット
-        if ($GridLogs.Columns.Count -gt 0) { $GridLogs.Columns[0].Width = $COL_WIDTH_TITLE } # 対象スケジュール名
-        if ($GridLogs.Columns.Count -gt 1) { $GridLogs.Columns[1].Width = [System.Windows.Controls.DataGridLength]::new(1, [System.Windows.Controls.DataGridLengthUnitType]::Star) } # 作業内容
-        for ($i = 0; $i -lt $GridLogs.Columns.Count; $i++) { $GridLogs.Columns[$i].DisplayIndex = $i }
-
-        # GridGantt のリセット
-        Build-GanttColumns
-        Refresh-UI
+        Reset-AllGridLayouts
         Show-Toast "表示をリセットしました"
     })
 
 $GridSync.Add_MouseDoubleClick({
-        if ($GridSync.CurrentColumn -and $GridSync.CurrentColumn.Header -eq "スケジュール名") {
-            if ($GridSync.CurrentItem) { Invoke-LogForm -task $GridSync.CurrentItem }
-        }
+        Handle-SyncGridDoubleClick
     })
 $GridGantt.Add_MouseDoubleClick({
-        if ($GridGantt.CurrentCell.IsValid) {
-            $col = $GridGantt.CurrentColumn
-            $item = $GridGantt.CurrentCell.Item
-            $title = $item["スケジュール名"]
-            $taskObj = $item["OriginalTask"]
-
-            if ($col.Header -eq "スケジュール名") {
-                # スケジュール名列の動作切替
-                if ($taskObj) {
-                    if ($ChkLogMode.IsChecked) {
-                        Invoke-LogForm -task $taskObj
-                    }
-                    else {
-                        $memo = $item["メモ"]
-                        if (-not [string]::IsNullOrWhiteSpace($memo)) {
-                            Invoke-ViewForm -title "メモ - $title" -text $memo
-                        }
-                    }
-                }
-            }
-            elseif ($col -is [System.Windows.Controls.DataGridTemplateColumn] -and $col.SortMemberPath) {
-                # 日付セル（記号列）ならログ表示画面を開く（従来通り）
-                $dStr = $col.SortMemberPath
-                $text = $item["${dStr}_TT"]
-                if (-not [string]::IsNullOrWhiteSpace($text)) {
-                    Invoke-ViewForm -title "作業ログ ($dStr) - $title" -text $text
-                }
-            }
-        }
+        Handle-GanttGridDoubleClick
     })
 $GridLogs.Add_MouseDoubleClick({
-        if ($GridLogs.CurrentItem) {
-            $logObj = $GridLogs.CurrentItem
-            $data = Get-AllData
-            $taskObj = $data.parsed | Where-Object { $_.uid -eq $logObj.uid } | Select-Object -First 1
-            if ($taskObj) { Invoke-LogForm -task $taskObj -editLog $logObj }
+        Handle-LogsGridDoubleClick
+    })
+
+$Form.Add_SizeChanged({
+        if ($Form.ActualWidth -lt 980) {
+            $ChkLogMode.Content = "ログ"
+            $ChkSuppressWeekendHighlight.Content = "土日"
         }
+        else {
+            $ChkLogMode.Content = "作業ログ入力モード"
+            $ChkSuppressWeekendHighlight.Content = "土日の予定色を抑制"
+        }
+
+        if ($Form.ActualWidth -lt 825) {
+            [System.Windows.Controls.Grid]::SetRow($ToolbarSecondaryGroup, 1)
+            [System.Windows.Controls.Grid]::SetColumn($ToolbarSecondaryGroup, 0)
+            $ToolbarSecondaryGroup.Margin = "0,6,0,0"
+        }
+        else {
+            [System.Windows.Controls.Grid]::SetRow($ToolbarSecondaryGroup, 0)
+            [System.Windows.Controls.Grid]::SetColumn($ToolbarSecondaryGroup, 1)
+            $ToolbarSecondaryGroup.Margin = "0"
+        }
+    })
+
+$Form.Add_Closing({
+        Save-WindowPlacement -Window $Form -Settings $AppSettings
     })
 
 # INITIAL LOAD
