@@ -37,10 +37,6 @@ $BtnResetView.Add_Click({
         Show-Toast "表示をリセットしました"
     })
 
-$MenuExit.Add_Click({
-        $Form.Close()
-    })
-
 $GridGantt.Add_MouseDoubleClick({
         Handle-GanttGridDoubleClick
     })

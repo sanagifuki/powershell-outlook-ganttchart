@@ -1,6 +1,6 @@
 ﻿# Auto-generated from src/*.ps1 by build.ps1.
 # Edit files under src/ instead of this generated file.
-# Source commit: a82773c
+# Source commit: 8726daa
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Drawing
@@ -1373,19 +1373,17 @@ function Get-AllData {
         
         <DockPanel Background="#FFFFFF" LastChildFill="False">
             <Menu DockPanel.Dock="Top" BorderThickness="0,0,0,1" BorderBrush="$CLR_BORDER">
-                <MenuItem Header="ファイル">
+                <MenuItem Header="予定">
                     <MenuItem Name="BtnSync" Header="Outlook同期"/>
                     <Separator/>
                     <MenuItem Name="BtnAddAppt" Header="予定追加"/>
                     <MenuItem Name="BtnEditAppt" Header="予定編集"/>
                     <Separator/>
-                    <MenuItem Name="MenuExit" Header="終了"/>
-                </MenuItem>
-                <MenuItem Header="編集">
                     <MenuItem Name="BtnComplete" Header="完了切替"/>
-                    <MenuItem Name="BtnResetView" Header="表示リセット"/>
                 </MenuItem>
                 <MenuItem Header="表示">
+                    <MenuItem Name="BtnResetView" Header="表示リセット"/>
+                    <Separator/>
                     <MenuItem Name="ChkSuppressWeekendHighlight" Header="土日の予定色を抑制" IsCheckable="True"/>
                     <MenuItem Name="ChkTopmost" Header="最前面" IsCheckable="True"/>
                 </MenuItem>
@@ -1606,7 +1604,6 @@ function Initialize-MainWindowControls {
     $script:ChkSuppressWeekendHighlight = $Window.FindName("ChkSuppressWeekendHighlight")
     $script:ChkTopmost = $Window.FindName("ChkTopmost")
     $script:BtnHelp = $Window.FindName("BtnHelp")
-    $script:MenuExit = $Window.FindName("MenuExit")
     $script:GridSync = $Window.FindName("GridSync")
     $script:GridGantt = $Window.FindName("GridGantt")
     $script:GridLogs = $Window.FindName("GridLogs")
@@ -2700,10 +2697,6 @@ $BtnHelp.Add_Click({
 $BtnResetView.Add_Click({
         Reset-AllGridLayouts
         Show-Toast "表示をリセットしました"
-    })
-
-$MenuExit.Add_Click({
-        $Form.Close()
     })
 
 $GridGantt.Add_MouseDoubleClick({
