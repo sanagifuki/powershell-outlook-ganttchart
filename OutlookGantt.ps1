@@ -1,6 +1,6 @@
 ﻿# Auto-generated from src/*.ps1 by build.ps1.
 # Edit files under src/ instead of this generated file.
-# Source commit: 0dc033e
+# Source commit: 67f3f8e
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Drawing
@@ -199,6 +199,7 @@ function Get-DefaultAppSettings {
         ganttStartOffsetDays = -7
         logInputModeDefault = $true
         suppressWeekendScheduleHighlightDefault = $false
+        topmostDefault = $false
         addAppointmentPrivateDefault = $true
         addAppointmentShowAsFreeDefault = $true
         addAppointmentTypeDefaultSymbol = "◆"
@@ -410,6 +411,7 @@ function Get-HelpText {
 　- ganttStartOffsetDays：ガント開始日の初期値。-7 なら今日の7日前、0 なら今日、7 なら今日の7日後。
 　- logInputModeDefault：作業ログ入力モードを初期ONにするか。
 　- suppressWeekendScheduleHighlightDefault：土日の予定セルのオレンジ色を初期状態で抑制するか。
+　- topmostDefault：ウィンドウを最前面表示で起動するか。
 　- addAppointmentPrivateDefault：予定追加時、「非公開」を初期ONにするか。
 　- addAppointmentShowAsFreeDefault：予定追加時、「空き時間として表示」を初期ONにするか。
 　- addAppointmentTypeDefaultSymbol：予定追加時の期限タイプ初期値。✕ / ◆ / ◇ / ▶ のいずれか。
@@ -1399,6 +1401,7 @@ function Get-AllData {
                 <StackPanel Name="ToolbarSecondaryGroup" Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0">
                     <CheckBox Name="ChkLogMode" Content="作業ログ入力モード" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#333333" ToolTip="作業ログ入力モード"/>
                     <CheckBox Name="ChkSuppressWeekendHighlight" Content="土日の予定色を抑制" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#333333" ToolTip="土日の予定色を抑制"/>
+                    <CheckBox Name="ChkTopmost" Content="最前面" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#333333" ToolTip="最前面に固定"/>
                     <Button Name="BtnHelp" Content="？" Width="22" Height="22" Background="#F0F0F0" Foreground="#555555" BorderBrush="$CLR_BORDER" Cursor="Hand" ToolTip="留意事項を表示します"/>
                 </StackPanel>
             </Grid>
@@ -1598,6 +1601,7 @@ function Initialize-MainWindowControls {
     $script:BtnResetView = $Window.FindName("BtnResetView")
     $script:ChkLogMode = $Window.FindName("ChkLogMode")
     $script:ChkSuppressWeekendHighlight = $Window.FindName("ChkSuppressWeekendHighlight")
+    $script:ChkTopmost = $Window.FindName("ChkTopmost")
     $script:ToolbarSecondaryGroup = $Window.FindName("ToolbarSecondaryGroup")
     $script:BtnHelp = $Window.FindName("BtnHelp")
     $script:GridSync = $Window.FindName("GridSync")
@@ -1615,6 +1619,8 @@ Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content ([string]$AppSet
 if ($GanttDaysCombo.SelectedIndex -lt 0) { Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content "35" }
 $ChkLogMode.IsChecked = [bool]$AppSettings.logInputModeDefault
 $ChkSuppressWeekendHighlight.IsChecked = [bool]$AppSettings.suppressWeekendScheduleHighlightDefault
+$ChkTopmost.IsChecked = [bool]$AppSettings.topmostDefault
+$Form.Topmost = [bool]$ChkTopmost.IsChecked
 $BtnAddAppt.Add_Click({ Invoke-AddAppointmentForm })
 
 function ConvertTo-WpfBrush {
@@ -2652,6 +2658,8 @@ $GanttDatePicker.Add_SelectedDateChanged({ Refresh-UI })
 $GanttDaysCombo.Add_DropDownClosed({ Refresh-UI })
 $ChkSuppressWeekendHighlight.Add_Checked({ Refresh-UI })
 $ChkSuppressWeekendHighlight.Add_Unchecked({ Refresh-UI })
+$ChkTopmost.Add_Checked({ $Form.Topmost = $true })
+$ChkTopmost.Add_Unchecked({ $Form.Topmost = $false })
 
 $BtnComplete.Add_Click({
         try {
@@ -2691,10 +2699,12 @@ $Form.Add_SizeChanged({
         if ($Form.ActualWidth -lt 980) {
             $ChkLogMode.Content = "ログ"
             $ChkSuppressWeekendHighlight.Content = "土日"
+            $ChkTopmost.Content = "前面"
         }
         else {
             $ChkLogMode.Content = "作業ログ入力モード"
             $ChkSuppressWeekendHighlight.Content = "土日の予定色を抑制"
+            $ChkTopmost.Content = "最前面"
         }
 
         if ($Form.ActualWidth -lt 825) {

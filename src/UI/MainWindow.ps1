@@ -164,6 +164,7 @@
                 <StackPanel Name="ToolbarSecondaryGroup" Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0">
                     <CheckBox Name="ChkLogMode" Content="作業ログ入力モード" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#333333" ToolTip="作業ログ入力モード"/>
                     <CheckBox Name="ChkSuppressWeekendHighlight" Content="土日の予定色を抑制" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#333333" ToolTip="土日の予定色を抑制"/>
+                    <CheckBox Name="ChkTopmost" Content="最前面" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#333333" ToolTip="最前面に固定"/>
                     <Button Name="BtnHelp" Content="？" Width="22" Height="22" Background="#F0F0F0" Foreground="#555555" BorderBrush="$CLR_BORDER" Cursor="Hand" ToolTip="留意事項を表示します"/>
                 </StackPanel>
             </Grid>
@@ -363,6 +364,7 @@ function Initialize-MainWindowControls {
     $script:BtnResetView = $Window.FindName("BtnResetView")
     $script:ChkLogMode = $Window.FindName("ChkLogMode")
     $script:ChkSuppressWeekendHighlight = $Window.FindName("ChkSuppressWeekendHighlight")
+    $script:ChkTopmost = $Window.FindName("ChkTopmost")
     $script:ToolbarSecondaryGroup = $Window.FindName("ToolbarSecondaryGroup")
     $script:BtnHelp = $Window.FindName("BtnHelp")
     $script:GridSync = $Window.FindName("GridSync")
@@ -380,5 +382,7 @@ Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content ([string]$AppSet
 if ($GanttDaysCombo.SelectedIndex -lt 0) { Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content "35" }
 $ChkLogMode.IsChecked = [bool]$AppSettings.logInputModeDefault
 $ChkSuppressWeekendHighlight.IsChecked = [bool]$AppSettings.suppressWeekendScheduleHighlightDefault
+$ChkTopmost.IsChecked = [bool]$AppSettings.topmostDefault
+$Form.Topmost = [bool]$ChkTopmost.IsChecked
 $BtnAddAppt.Add_Click({ Invoke-AddAppointmentForm })
 

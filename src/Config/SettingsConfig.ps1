@@ -7,6 +7,7 @@ function Get-DefaultAppSettings {
         ganttStartOffsetDays = -7
         logInputModeDefault = $true
         suppressWeekendScheduleHighlightDefault = $false
+        topmostDefault = $false
         addAppointmentPrivateDefault = $true
         addAppointmentShowAsFreeDefault = $true
         addAppointmentTypeDefaultSymbol = "◆"

@@ -43,6 +43,7 @@ function Get-HelpText {
 　- ganttStartOffsetDays：ガント開始日の初期値。-7 なら今日の7日前、0 なら今日、7 なら今日の7日後。
 　- logInputModeDefault：作業ログ入力モードを初期ONにするか。
 　- suppressWeekendScheduleHighlightDefault：土日の予定セルのオレンジ色を初期状態で抑制するか。
+　- topmostDefault：ウィンドウを最前面表示で起動するか。
 　- addAppointmentPrivateDefault：予定追加時、「非公開」を初期ONにするか。
 　- addAppointmentShowAsFreeDefault：予定追加時、「空き時間として表示」を初期ONにするか。
 　- addAppointmentTypeDefaultSymbol：予定追加時の期限タイプ初期値。✕ / ◆ / ◇ / ▶ のいずれか。

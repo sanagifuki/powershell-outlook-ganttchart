@@ -64,6 +64,7 @@ Assert-True ((Get-CategoryNames).Count -gt 0) 'Default categories should be load
 $settings = Get-DefaultAppSettings
 Assert-Equal $settings.ganttDefaultDays 35 'Default gantt days setting failed.'
 Assert-Equal $settings.addAppointmentTypeDefaultSymbol '◆' 'Default appointment type setting failed.'
+Assert-Equal $settings.topmostDefault $false 'Default topmost setting failed.'
 Assert-Equal $settings.rememberWindowPlacement $true 'Default window placement setting failed.'
 Assert-Equal $settings.windowWidth 769 'Default window width setting failed.'
 Assert-Equal $settings.windowMinWidth 825 'Default window minimum width setting failed.'

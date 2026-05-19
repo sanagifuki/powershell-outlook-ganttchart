@@ -7,6 +7,8 @@ $GanttDatePicker.Add_SelectedDateChanged({ Refresh-UI })
 $GanttDaysCombo.Add_DropDownClosed({ Refresh-UI })
 $ChkSuppressWeekendHighlight.Add_Checked({ Refresh-UI })
 $ChkSuppressWeekendHighlight.Add_Unchecked({ Refresh-UI })
+$ChkTopmost.Add_Checked({ $Form.Topmost = $true })
+$ChkTopmost.Add_Unchecked({ $Form.Topmost = $false })
 
 $BtnComplete.Add_Click({
         try {
@@ -46,10 +48,12 @@ $Form.Add_SizeChanged({
         if ($Form.ActualWidth -lt 980) {
             $ChkLogMode.Content = "ログ"
             $ChkSuppressWeekendHighlight.Content = "土日"
+            $ChkTopmost.Content = "前面"
         }
         else {
             $ChkLogMode.Content = "作業ログ入力モード"
             $ChkSuppressWeekendHighlight.Content = "土日の予定色を抑制"
+            $ChkTopmost.Content = "最前面"
         }
 
         if ($Form.ActualWidth -lt 825) {
