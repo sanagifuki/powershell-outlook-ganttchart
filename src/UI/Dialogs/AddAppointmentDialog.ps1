@@ -194,7 +194,11 @@ function Test-AddAppointmentInput {
 }
 
 # 予定追加フォームを表示する関数
-function Invoke-AddAppointmentForm {
+function Invoke-AppointmentForm {
+    param(
+        $ExistingTask
+    )
+
     $window = New-AddAppointmentWindow
 
     $comboType = $window.FindName("ComboType")
@@ -213,17 +217,53 @@ function Invoke-AddAppointmentForm {
     $btnCancel = $window.FindName("BtnCancel")
 
     $settings = Get-AppSettings
-    Select-ComboBoxItemByTag -ComboBox $comboType -Tag $settings.addAppointmentTypeDefaultSymbol
-    if ($comboType.SelectedIndex -lt 0) { Select-ComboBoxItemByTag -ComboBox $comboType -Tag "◆" }
-    $comboCat.Text = [string]$settings.addAppointmentCategoryDefault
-    if ([string]::IsNullOrWhiteSpace($comboCat.Text) -and $comboCat.Items.Count -gt 0) { $comboCat.SelectedIndex = 0 }
-    $chkPrivate.IsChecked = [bool]$settings.addAppointmentPrivateDefault
-    $chkShowAsFree.IsChecked = [bool]$settings.addAppointmentShowAsFreeDefault
+    $isEditMode = ($null -ne $ExistingTask)
+
+    if ($isEditMode) {
+        $window.Title = "Outlook予定編集"
+        $btnSave.Content = "変更を保存"
+    }
 
     # 初期値設定
     $today = Get-Date
     $dateStart.SelectedDate = $today
     $dateEnd.SelectedDate   = $today
+
+    if ($isEditMode) {
+        $typeSymbol = switch ($ExistingTask.期限タイプ) {
+            "絶対期限" { "✕" }
+            "推奨期限" { "◆" }
+            "目安期限" { "◇" }
+            "予定日" { "▶" }
+            "参照用" { "★" }
+            default { "◆" }
+        }
+        Select-ComboBoxItemByTag -ComboBox $comboType -Tag $typeSymbol
+        $comboCat.Text = [string]$ExistingTask.分類
+        $txtTitle.Text = ([string]$ExistingTask.タイトル) -replace '^[✕◆◇▶★]\s*', ''
+        $dateStart.SelectedDate = [datetime]::Parse($ExistingTask.開始日)
+        $dateEnd.SelectedDate = [datetime]::Parse($ExistingTask.終了日)
+        if (-not [string]::IsNullOrWhiteSpace($ExistingTask.開始時間)) { $timeStart.Text = $ExistingTask.開始時間 }
+        if (-not [string]::IsNullOrWhiteSpace($ExistingTask.終了時間)) { $timeEnd.Text = $ExistingTask.終了時間 }
+        $txtMemo.Text = [string]$ExistingTask.メモ
+        try {
+            $outlookOptions = Get-OutlookAppointmentOptions -EntryId $ExistingTask.uid
+            $chkPrivate.IsChecked = [bool]$outlookOptions.IsPrivate
+            $chkShowAsFree.IsChecked = [bool]$outlookOptions.ShowAsFree
+        }
+        catch {
+            $chkPrivate.IsChecked = [bool]$settings.addAppointmentPrivateDefault
+            $chkShowAsFree.IsChecked = [bool]$settings.addAppointmentShowAsFreeDefault
+        }
+    }
+    else {
+        Select-ComboBoxItemByTag -ComboBox $comboType -Tag $settings.addAppointmentTypeDefaultSymbol
+        if ($comboType.SelectedIndex -lt 0) { Select-ComboBoxItemByTag -ComboBox $comboType -Tag "◆" }
+        $comboCat.Text = [string]$settings.addAppointmentCategoryDefault
+        if ([string]::IsNullOrWhiteSpace($comboCat.Text) -and $comboCat.Items.Count -gt 0) { $comboCat.SelectedIndex = 0 }
+        $chkPrivate.IsChecked = [bool]$settings.addAppointmentPrivateDefault
+        $chkShowAsFree.IsChecked = [bool]$settings.addAppointmentShowAsFreeDefault
+    }
 
     $updateUIByType = {
         Update-AddAppointmentTypeUi -ComboType $comboType -PanelTime $panelTime -DateStart $dateStart -DateEnd $dateEnd
@@ -260,8 +300,14 @@ function Invoke-AddAppointmentForm {
             $sDate = $dateStart.SelectedDate
             $eDate = $dateEnd.SelectedDate
 
-            Add-OutlookAppointment -Subject $formattedTitle -Body $txtMemo.Text -StartDate $sDate -EndDate $eDate -IsTimed $isTimed -StartTime $timeStart.Text -EndTime $timeEnd.Text -IsPrivate $chkPrivate.IsChecked -ShowAsFree $chkShowAsFree.IsChecked
-            Show-Toast "Outlookに予定を追加しました: $formattedTitle"
+            if ($isEditMode) {
+                Set-OutlookAppointmentDetails -EntryId $ExistingTask.uid -Subject $formattedTitle -Body $txtMemo.Text -StartDate $sDate -EndDate $eDate -IsTimed $isTimed -StartTime $timeStart.Text -EndTime $timeEnd.Text -IsPrivate $chkPrivate.IsChecked -ShowAsFree $chkShowAsFree.IsChecked
+                Show-Toast "Outlook予定を更新しました: $formattedTitle"
+            }
+            else {
+                Add-OutlookAppointment -Subject $formattedTitle -Body $txtMemo.Text -StartDate $sDate -EndDate $eDate -IsTimed $isTimed -StartTime $timeStart.Text -EndTime $timeEnd.Text -IsPrivate $chkPrivate.IsChecked -ShowAsFree $chkShowAsFree.IsChecked
+                Show-Toast "Outlookに予定を追加しました: $formattedTitle"
+            }
             $window.DialogResult = $true
             $window.Close()
         } catch {
@@ -274,7 +320,22 @@ function Invoke-AddAppointmentForm {
             $window.Close()
         })
     if ($window.ShowDialog() -eq $true) {
-        Invoke-OutlookSync -SuccessPrefix "予定追加後の同期完了"
+        if ($isEditMode) {
+            Invoke-OutlookSync -SuccessPrefix "予定編集後の同期完了"
+        }
+        else {
+            Invoke-OutlookSync -SuccessPrefix "予定追加後の同期完了"
+        }
     }
+}
+
+function Invoke-AddAppointmentForm {
+    Invoke-AppointmentForm
+}
+
+function Invoke-EditAppointmentForm {
+    param($Task)
+
+    Invoke-AppointmentForm -ExistingTask $Task
 }
 

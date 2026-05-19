@@ -1,6 +1,6 @@
-# Auto-generated from src/*.ps1 by build.ps1.
+﻿# Auto-generated from src/*.ps1 by build.ps1.
 # Edit files under src/ instead of this generated file.
-# Source commit: b7e03e0
+# Source commit: 8be2299
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Drawing
@@ -537,19 +537,54 @@ function Add-CategoryText {
     return "$Categories, $Category"
 }
 
+function Remove-CategoryText {
+    param(
+        [string]$Categories,
+        [string]$Category
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Categories)) {
+        return ""
+    }
+
+    $items = @($Categories -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -ne $Category })
+    return ($items -join ', ')
+}
+
+function Set-CachedScheduleCompletion {
+    param(
+        [array]$Schedules,
+        [string]$Uid,
+        [bool]$Completed
+    )
+
+    foreach ($schedule in $Schedules) {
+        if ($schedule.uid -eq $Uid) {
+            if ($Completed) {
+                $schedule.categories = Add-CategoryText -Categories $schedule.categories -Category "完了"
+            }
+            else {
+                $schedule.categories = Remove-CategoryText -Categories $schedule.categories -Category "完了"
+            }
+        }
+    }
+
+    return @($Schedules)
+}
+
 function Set-CachedScheduleCompleted {
     param(
         [array]$Schedules,
         [string]$Uid
     )
 
-    foreach ($schedule in $Schedules) {
-        if ($schedule.uid -eq $Uid) {
-            $schedule.categories = Add-CategoryText -Categories $schedule.categories -Category "完了"
-        }
-    }
+    Set-CachedScheduleCompletion -Schedules $Schedules -Uid $Uid -Completed $true
+}
 
-    return @($Schedules)
+function Get-CompletionToggleSchedules {
+    param([array]$Schedules)
+
+    @($Schedules)
 }
 
 function Get-IncompleteSchedules {
@@ -1120,13 +1155,72 @@ function Add-OutlookAppointment {
     $appointment.Save()
 }
 
-function Set-OutlookAppointmentCompleted {
+function Get-OutlookAppointmentOptions {
     param([string]$EntryId)
 
     $outlook = New-Object -ComObject Outlook.Application
     $namespace = $outlook.GetNamespace("MAPI")
     $appointment = $namespace.GetItemFromID($EntryId)
-    $appointment.Categories = Add-CategoryText -Categories $appointment.Categories -Category "完了"
+
+    [PSCustomObject]@{
+        IsPrivate = ($appointment.Sensitivity -eq 2)
+        ShowAsFree = ($appointment.BusyStatus -eq 0)
+    }
+}
+
+function Set-OutlookAppointmentDetails {
+    param(
+        [string]$EntryId,
+        [string]$Subject,
+        [string]$Body,
+        [datetime]$StartDate,
+        [datetime]$EndDate,
+        [bool]$IsTimed,
+        [string]$StartTime,
+        [string]$EndTime,
+        [bool]$IsPrivate = $true,
+        [bool]$ShowAsFree = $true
+    )
+
+    $outlook = New-Object -ComObject Outlook.Application
+    $namespace = $outlook.GetNamespace("MAPI")
+    $appointment = $namespace.GetItemFromID($EntryId)
+
+    $appointment.Subject = $Subject
+    $appointment.Body = $Body
+    $appointment.BusyStatus = if ($ShowAsFree) { 0 } else { 2 }
+    $appointment.Sensitivity = if ($IsPrivate) { 2 } else { 0 }
+    $appointment.ReminderSet = $false
+
+    if ($IsTimed) {
+        $appointment.AllDayEvent = $false
+        $appointment.Start = $StartDate.ToString("yyyy/MM/dd ") + $StartTime
+        $appointment.End = $StartDate.ToString("yyyy/MM/dd ") + $EndTime
+    }
+    else {
+        $appointment.AllDayEvent = $true
+        $appointment.Start = $StartDate.ToString("yyyy/MM/dd 00:00:00")
+        $appointment.End = $EndDate.AddDays(1).ToString("yyyy/MM/dd 00:00:00")
+    }
+
+    $appointment.Save()
+}
+
+function Set-OutlookAppointmentCompletion {
+    param(
+        [string]$EntryId,
+        [bool]$Completed
+    )
+
+    $outlook = New-Object -ComObject Outlook.Application
+    $namespace = $outlook.GetNamespace("MAPI")
+    $appointment = $namespace.GetItemFromID($EntryId)
+    if ($Completed) {
+        $appointment.Categories = Add-CategoryText -Categories $appointment.Categories -Category "完了"
+    }
+    else {
+        $appointment.Categories = Remove-CategoryText -Categories $appointment.Categories -Category "完了"
+    }
     $appointment.Save()
 }
 function Get-AllData {
@@ -1286,8 +1380,9 @@ function Get-AllData {
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Name="ToolbarPrimaryGroup" Grid.Row="0" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
-                    <Button Name="BtnAddAppt" Content="予定追加" Padding="12,4" Background="#34A853" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
-                    <Button Name="BtnComplete" Content="完了登録" Padding="12,4" Background="#1f8d61" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+                    <Button Name="BtnAddAppt" Content="追加" Padding="12,4" Background="#34A853" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+                    <Button Name="BtnEditAppt" Content="編集" Padding="12,4" Background="#5F6368" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+                    <Button Name="BtnComplete" Content="完了切替" Padding="12,4" Background="#1f8d61" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
                     <Button Name="BtnSync" Content="Outlook同期" Padding="12,4" Background="#1A73E8" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
                     <TextBlock Text="ガント開始日:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
                     <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,5,0"/>
@@ -1495,6 +1590,7 @@ function Initialize-MainWindowControls {
     param($Window)
 
     $script:BtnAddAppt = $Window.FindName("BtnAddAppt")
+    $script:BtnEditAppt = $Window.FindName("BtnEditAppt")
     $script:BtnSync = $Window.FindName("BtnSync")
     $script:BtnComplete = $Window.FindName("BtnComplete")
     $script:GanttDatePicker = $Window.FindName("GanttDatePicker")
@@ -1913,7 +2009,11 @@ function Test-AddAppointmentInput {
 }
 
 # 予定追加フォームを表示する関数
-function Invoke-AddAppointmentForm {
+function Invoke-AppointmentForm {
+    param(
+        $ExistingTask
+    )
+
     $window = New-AddAppointmentWindow
 
     $comboType = $window.FindName("ComboType")
@@ -1932,17 +2032,53 @@ function Invoke-AddAppointmentForm {
     $btnCancel = $window.FindName("BtnCancel")
 
     $settings = Get-AppSettings
-    Select-ComboBoxItemByTag -ComboBox $comboType -Tag $settings.addAppointmentTypeDefaultSymbol
-    if ($comboType.SelectedIndex -lt 0) { Select-ComboBoxItemByTag -ComboBox $comboType -Tag "◆" }
-    $comboCat.Text = [string]$settings.addAppointmentCategoryDefault
-    if ([string]::IsNullOrWhiteSpace($comboCat.Text) -and $comboCat.Items.Count -gt 0) { $comboCat.SelectedIndex = 0 }
-    $chkPrivate.IsChecked = [bool]$settings.addAppointmentPrivateDefault
-    $chkShowAsFree.IsChecked = [bool]$settings.addAppointmentShowAsFreeDefault
+    $isEditMode = ($null -ne $ExistingTask)
+
+    if ($isEditMode) {
+        $window.Title = "Outlook予定編集"
+        $btnSave.Content = "変更を保存"
+    }
 
     # 初期値設定
     $today = Get-Date
     $dateStart.SelectedDate = $today
     $dateEnd.SelectedDate   = $today
+
+    if ($isEditMode) {
+        $typeSymbol = switch ($ExistingTask.期限タイプ) {
+            "絶対期限" { "✕" }
+            "推奨期限" { "◆" }
+            "目安期限" { "◇" }
+            "予定日" { "▶" }
+            "参照用" { "★" }
+            default { "◆" }
+        }
+        Select-ComboBoxItemByTag -ComboBox $comboType -Tag $typeSymbol
+        $comboCat.Text = [string]$ExistingTask.分類
+        $txtTitle.Text = ([string]$ExistingTask.タイトル) -replace '^[✕◆◇▶★]\s*', ''
+        $dateStart.SelectedDate = [datetime]::Parse($ExistingTask.開始日)
+        $dateEnd.SelectedDate = [datetime]::Parse($ExistingTask.終了日)
+        if (-not [string]::IsNullOrWhiteSpace($ExistingTask.開始時間)) { $timeStart.Text = $ExistingTask.開始時間 }
+        if (-not [string]::IsNullOrWhiteSpace($ExistingTask.終了時間)) { $timeEnd.Text = $ExistingTask.終了時間 }
+        $txtMemo.Text = [string]$ExistingTask.メモ
+        try {
+            $outlookOptions = Get-OutlookAppointmentOptions -EntryId $ExistingTask.uid
+            $chkPrivate.IsChecked = [bool]$outlookOptions.IsPrivate
+            $chkShowAsFree.IsChecked = [bool]$outlookOptions.ShowAsFree
+        }
+        catch {
+            $chkPrivate.IsChecked = [bool]$settings.addAppointmentPrivateDefault
+            $chkShowAsFree.IsChecked = [bool]$settings.addAppointmentShowAsFreeDefault
+        }
+    }
+    else {
+        Select-ComboBoxItemByTag -ComboBox $comboType -Tag $settings.addAppointmentTypeDefaultSymbol
+        if ($comboType.SelectedIndex -lt 0) { Select-ComboBoxItemByTag -ComboBox $comboType -Tag "◆" }
+        $comboCat.Text = [string]$settings.addAppointmentCategoryDefault
+        if ([string]::IsNullOrWhiteSpace($comboCat.Text) -and $comboCat.Items.Count -gt 0) { $comboCat.SelectedIndex = 0 }
+        $chkPrivate.IsChecked = [bool]$settings.addAppointmentPrivateDefault
+        $chkShowAsFree.IsChecked = [bool]$settings.addAppointmentShowAsFreeDefault
+    }
 
     $updateUIByType = {
         Update-AddAppointmentTypeUi -ComboType $comboType -PanelTime $panelTime -DateStart $dateStart -DateEnd $dateEnd
@@ -1979,8 +2115,14 @@ function Invoke-AddAppointmentForm {
             $sDate = $dateStart.SelectedDate
             $eDate = $dateEnd.SelectedDate
 
-            Add-OutlookAppointment -Subject $formattedTitle -Body $txtMemo.Text -StartDate $sDate -EndDate $eDate -IsTimed $isTimed -StartTime $timeStart.Text -EndTime $timeEnd.Text -IsPrivate $chkPrivate.IsChecked -ShowAsFree $chkShowAsFree.IsChecked
-            Show-Toast "Outlookに予定を追加しました: $formattedTitle"
+            if ($isEditMode) {
+                Set-OutlookAppointmentDetails -EntryId $ExistingTask.uid -Subject $formattedTitle -Body $txtMemo.Text -StartDate $sDate -EndDate $eDate -IsTimed $isTimed -StartTime $timeStart.Text -EndTime $timeEnd.Text -IsPrivate $chkPrivate.IsChecked -ShowAsFree $chkShowAsFree.IsChecked
+                Show-Toast "Outlook予定を更新しました: $formattedTitle"
+            }
+            else {
+                Add-OutlookAppointment -Subject $formattedTitle -Body $txtMemo.Text -StartDate $sDate -EndDate $eDate -IsTimed $isTimed -StartTime $timeStart.Text -EndTime $timeEnd.Text -IsPrivate $chkPrivate.IsChecked -ShowAsFree $chkShowAsFree.IsChecked
+                Show-Toast "Outlookに予定を追加しました: $formattedTitle"
+            }
             $window.DialogResult = $true
             $window.Close()
         } catch {
@@ -1993,8 +2135,23 @@ function Invoke-AddAppointmentForm {
             $window.Close()
         })
     if ($window.ShowDialog() -eq $true) {
-        Invoke-OutlookSync -SuccessPrefix "予定追加後の同期完了"
+        if ($isEditMode) {
+            Invoke-OutlookSync -SuccessPrefix "予定編集後の同期完了"
+        }
+        else {
+            Invoke-OutlookSync -SuccessPrefix "予定追加後の同期完了"
+        }
     }
+}
+
+function Invoke-AddAppointmentForm {
+    Invoke-AppointmentForm
+}
+
+function Invoke-EditAppointmentForm {
+    param($Task)
+
+    Invoke-AppointmentForm -ExistingTask $Task
 }
 
 function Invoke-ViewForm {
@@ -2119,16 +2276,16 @@ function Invoke-LogForm {
 function Invoke-CompleteSchedulePicker {
     param([array]$Tasks)
 
-    $items = Get-IncompleteSchedules -Schedules $Tasks
+    $items = Get-CompletionToggleSchedules -Schedules $Tasks
     if ($items.Count -eq 0) {
-        Show-Toast "完了にできる未完了スケジュールがありません"
+        Show-Toast "切り替えできるスケジュールがありません"
         return $null
     }
 
     [xml]$xaml = @"
     <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            Title="スケジュール完了" Height="190" Width="520"
+            Title="完了切替" Height="190" Width="520"
             Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
             TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
         <Grid Margin="14">
@@ -2138,12 +2295,99 @@ function Invoke-CompleteSchedulePicker {
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <TextBlock Text="完了にするスケジュール" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <TextBlock Text="完了状態を切り替えるスケジュール" FontWeight="SemiBold" Margin="0,0,0,6"/>
             <ComboBox Name="ComboSchedule" Grid.Row="1" Height="28" DisplayMemberPath="DisplayText"/>
             <TextBlock Name="TxtMemo" Grid.Row="2" TextWrapping="Wrap" Foreground="#666666" Margin="0,8,0,0"/>
             <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                 <Button Name="BtnCancel" Content="キャンセル" Width="90" Height="28" Margin="0,0,8,0"/>
-                <Button Name="BtnOk" Content="完了にする" Width="100" Height="28" Background="#1f8d61" Foreground="White" BorderThickness="0"/>
+                <Button Name="BtnOk" Content="完了にする" Width="110" Height="28" Background="#1f8d61" Foreground="White" BorderThickness="0"/>
+            </StackPanel>
+        </Grid>
+    </Window>
+"@
+
+    $reader = (New-Object System.Xml.XmlNodeReader $xaml)
+    $window = [System.Windows.Markup.XamlReader]::Load($reader)
+    $window.Owner = $Form
+
+    $combo = $window.FindName("ComboSchedule")
+    $memo = $window.FindName("TxtMemo")
+    $btnOk = $window.FindName("BtnOk")
+    $btnCancel = $window.FindName("BtnCancel")
+
+    $comboItems = @($items | ForEach-Object {
+            $_ | Add-Member -MemberType NoteProperty -Name DisplayText -Value "$($_.開始日) $($_.タイトル)" -Force
+            $_
+        })
+    $combo.ItemsSource = $comboItems
+    $combo.SelectedIndex = 0
+
+    $updateTogglePreview = {
+        if ($combo.SelectedItem) {
+            if ($combo.SelectedItem.ステータス -eq "完了") {
+                $memo.Text = "現在: 完了 / 実行後: 非完了に戻す"
+                $btnOk.Content = "非完了に戻す"
+                $btnOk.Background = "#5F6368"
+            }
+            else {
+                $memo.Text = "現在: $($combo.SelectedItem.ステータス) / 実行後: 完了にする"
+                $btnOk.Content = "完了にする"
+                $btnOk.Background = "#1f8d61"
+            }
+        }
+    }
+
+    $combo.Add_SelectionChanged({ & $updateTogglePreview })
+    & $updateTogglePreview
+
+    $btnCancel.Add_Click({
+            $window.DialogResult = $false
+            $window.Close()
+        })
+    $btnOk.Add_Click({
+            if (-not $combo.SelectedItem) {
+                Show-Toast "スケジュールを選択してください"
+                return
+            }
+            $window.DialogResult = $true
+            $window.Close()
+        })
+
+    if ($window.ShowDialog() -eq $true) {
+        return $combo.SelectedItem
+    }
+
+    return $null
+}
+
+function Invoke-ScheduleEditPicker {
+    param([array]$Tasks)
+
+    $items = @($Tasks)
+    if ($items.Count -eq 0) {
+        Show-Toast "編集できるスケジュールがありません"
+        return $null
+    }
+
+    [xml]$xaml = @"
+    <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            Title="スケジュール編集" Height="190" Width="520"
+            Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
+            TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+        <Grid Margin="14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="編集するスケジュール" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <ComboBox Name="ComboSchedule" Grid.Row="1" Height="28" DisplayMemberPath="DisplayText"/>
+            <TextBlock Name="TxtMemo" Grid.Row="2" TextWrapping="Wrap" Foreground="#666666" Margin="0,8,0,0"/>
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                <Button Name="BtnCancel" Content="キャンセル" Width="90" Height="28" Margin="0,0,8,0"/>
+                <Button Name="BtnOk" Content="編集する" Width="100" Height="28" Background="#1A73E8" Foreground="White" BorderThickness="0"/>
             </StackPanel>
         </Grid>
     </Window>
@@ -2363,19 +2607,49 @@ function Handle-LogsGridDoubleClick {
     }
 }
 
+function Get-DisplayedGanttTasks {
+    $tasks = @()
+    if (-not $GridGantt -or -not $GridGantt.ItemsSource) {
+        return $tasks
+    }
+
+    foreach ($row in $GridGantt.ItemsSource) {
+        $task = $row["OriginalTask"]
+        if ($task) {
+            $tasks += $task
+        }
+    }
+
+    return $tasks
+}
+
 function Complete-SelectedSchedule {
-    $data = Get-AllData
-    $task = Invoke-CompleteSchedulePicker -Tasks $data.parsed
+    $task = Invoke-CompleteSchedulePicker -Tasks (Get-DisplayedGanttTasks)
     if (-not $task) {
         return
     }
 
-    Set-OutlookAppointmentCompleted -EntryId $task.uid
+    $setCompleted = ($task.ステータス -ne "完了")
+    Set-OutlookAppointmentCompletion -EntryId $task.uid -Completed $setCompleted
     $schedules = Read-JsonArray -Path $TasksFile
-    $schedules = Set-CachedScheduleCompleted -Schedules $schedules -Uid $task.uid
+    $schedules = Set-CachedScheduleCompletion -Schedules $schedules -Uid $task.uid -Completed $setCompleted
     Write-JsonData -Path $TasksFile -Data $schedules
-    Show-Toast "完了にしました: $($task.タイトル)"
-    Invoke-OutlookSync -SuccessPrefix "完了登録後の同期完了"
+    if ($setCompleted) {
+        Show-Toast "完了にしました: $($task.タイトル)"
+    }
+    else {
+        Show-Toast "非完了に戻しました: $($task.タイトル)"
+    }
+    Invoke-OutlookSync -SuccessPrefix "完了切替後の同期完了"
+}
+
+function Edit-SelectedSchedule {
+    $task = Invoke-ScheduleEditPicker -Tasks (Get-DisplayedGanttTasks)
+    if (-not $task) {
+        return
+    }
+
+    Invoke-EditAppointmentForm -Task $task
 }
 # --- Events ---
 $BtnSync.Add_Click({
@@ -2392,7 +2666,16 @@ $BtnComplete.Add_Click({
             Complete-SelectedSchedule
         }
         catch {
-            Show-Toast "完了処理に失敗: $($_.Exception.Message)"
+            Show-Toast "完了切替に失敗: $($_.Exception.Message)"
+        }
+    })
+
+$BtnEditAppt.Add_Click({
+        try {
+            Edit-SelectedSchedule
+        }
+        catch {
+            Show-Toast "編集処理に失敗: $($_.Exception.Message)"
         }
     })
 

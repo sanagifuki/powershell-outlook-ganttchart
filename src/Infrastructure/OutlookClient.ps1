@@ -102,12 +102,71 @@ function Add-OutlookAppointment {
     $appointment.Save()
 }
 
-function Set-OutlookAppointmentCompleted {
+function Get-OutlookAppointmentOptions {
     param([string]$EntryId)
 
     $outlook = New-Object -ComObject Outlook.Application
     $namespace = $outlook.GetNamespace("MAPI")
     $appointment = $namespace.GetItemFromID($EntryId)
-    $appointment.Categories = Add-CategoryText -Categories $appointment.Categories -Category "完了"
+
+    [PSCustomObject]@{
+        IsPrivate = ($appointment.Sensitivity -eq 2)
+        ShowAsFree = ($appointment.BusyStatus -eq 0)
+    }
+}
+
+function Set-OutlookAppointmentDetails {
+    param(
+        [string]$EntryId,
+        [string]$Subject,
+        [string]$Body,
+        [datetime]$StartDate,
+        [datetime]$EndDate,
+        [bool]$IsTimed,
+        [string]$StartTime,
+        [string]$EndTime,
+        [bool]$IsPrivate = $true,
+        [bool]$ShowAsFree = $true
+    )
+
+    $outlook = New-Object -ComObject Outlook.Application
+    $namespace = $outlook.GetNamespace("MAPI")
+    $appointment = $namespace.GetItemFromID($EntryId)
+
+    $appointment.Subject = $Subject
+    $appointment.Body = $Body
+    $appointment.BusyStatus = if ($ShowAsFree) { 0 } else { 2 }
+    $appointment.Sensitivity = if ($IsPrivate) { 2 } else { 0 }
+    $appointment.ReminderSet = $false
+
+    if ($IsTimed) {
+        $appointment.AllDayEvent = $false
+        $appointment.Start = $StartDate.ToString("yyyy/MM/dd ") + $StartTime
+        $appointment.End = $StartDate.ToString("yyyy/MM/dd ") + $EndTime
+    }
+    else {
+        $appointment.AllDayEvent = $true
+        $appointment.Start = $StartDate.ToString("yyyy/MM/dd 00:00:00")
+        $appointment.End = $EndDate.AddDays(1).ToString("yyyy/MM/dd 00:00:00")
+    }
+
+    $appointment.Save()
+}
+
+function Set-OutlookAppointmentCompletion {
+    param(
+        [string]$EntryId,
+        [bool]$Completed
+    )
+
+    $outlook = New-Object -ComObject Outlook.Application
+    $namespace = $outlook.GetNamespace("MAPI")
+    $appointment = $namespace.GetItemFromID($EntryId)
+    if ($Completed) {
+        $appointment.Categories = Add-CategoryText -Categories $appointment.Categories -Category "完了"
+    }
+    else {
+        $appointment.Categories = Remove-CategoryText -Categories $appointment.Categories -Category "完了"
+    }
     $appointment.Save()
 }

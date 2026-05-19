@@ -14,19 +14,54 @@ function Add-CategoryText {
     return "$Categories, $Category"
 }
 
+function Remove-CategoryText {
+    param(
+        [string]$Categories,
+        [string]$Category
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Categories)) {
+        return ""
+    }
+
+    $items = @($Categories -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -ne $Category })
+    return ($items -join ', ')
+}
+
+function Set-CachedScheduleCompletion {
+    param(
+        [array]$Schedules,
+        [string]$Uid,
+        [bool]$Completed
+    )
+
+    foreach ($schedule in $Schedules) {
+        if ($schedule.uid -eq $Uid) {
+            if ($Completed) {
+                $schedule.categories = Add-CategoryText -Categories $schedule.categories -Category "完了"
+            }
+            else {
+                $schedule.categories = Remove-CategoryText -Categories $schedule.categories -Category "完了"
+            }
+        }
+    }
+
+    return @($Schedules)
+}
+
 function Set-CachedScheduleCompleted {
     param(
         [array]$Schedules,
         [string]$Uid
     )
 
-    foreach ($schedule in $Schedules) {
-        if ($schedule.uid -eq $Uid) {
-            $schedule.categories = Add-CategoryText -Categories $schedule.categories -Category "完了"
-        }
-    }
+    Set-CachedScheduleCompletion -Schedules $Schedules -Uid $Uid -Completed $true
+}
 
-    return @($Schedules)
+function Get-CompletionToggleSchedules {
+    param([array]$Schedules)
+
+    @($Schedules)
 }
 
 function Get-IncompleteSchedules {

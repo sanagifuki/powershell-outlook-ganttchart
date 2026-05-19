@@ -13,7 +13,16 @@ $BtnComplete.Add_Click({
             Complete-SelectedSchedule
         }
         catch {
-            Show-Toast "完了処理に失敗: $($_.Exception.Message)"
+            Show-Toast "完了切替に失敗: $($_.Exception.Message)"
+        }
+    })
+
+$BtnEditAppt.Add_Click({
+        try {
+            Edit-SelectedSchedule
+        }
+        catch {
+            Show-Toast "編集処理に失敗: $($_.Exception.Message)"
         }
     })
 

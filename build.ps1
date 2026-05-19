@@ -32,5 +32,7 @@ if ($outputDir -and -not (Test-Path -LiteralPath $outputDir)) {
     New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 }
 
-Set-Content -LiteralPath $OutputPath -Value $builder.ToString() -Encoding UTF8 -NoNewline
+$utf8Bom = [System.Text.UTF8Encoding]::new($true)
+$fullOutputPath = [System.IO.Path]::GetFullPath($OutputPath)
+[System.IO.File]::WriteAllText($fullOutputPath, $builder.ToString(), $utf8Bom)
 Write-Host "Built: $OutputPath"

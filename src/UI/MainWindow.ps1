@@ -145,8 +145,9 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Name="ToolbarPrimaryGroup" Grid.Row="0" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
-                    <Button Name="BtnAddAppt" Content="予定追加" Padding="12,4" Background="#34A853" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
-                    <Button Name="BtnComplete" Content="完了登録" Padding="12,4" Background="#1f8d61" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+                    <Button Name="BtnAddAppt" Content="追加" Padding="12,4" Background="#34A853" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+                    <Button Name="BtnEditAppt" Content="編集" Padding="12,4" Background="#5F6368" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+                    <Button Name="BtnComplete" Content="完了切替" Padding="12,4" Background="#1f8d61" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
                     <Button Name="BtnSync" Content="Outlook同期" Padding="12,4" Background="#1A73E8" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
                     <TextBlock Text="ガント開始日:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
                     <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,5,0"/>
@@ -354,6 +355,7 @@ function Initialize-MainWindowControls {
     param($Window)
 
     $script:BtnAddAppt = $Window.FindName("BtnAddAppt")
+    $script:BtnEditAppt = $Window.FindName("BtnEditAppt")
     $script:BtnSync = $Window.FindName("BtnSync")
     $script:BtnComplete = $Window.FindName("BtnComplete")
     $script:GanttDatePicker = $Window.FindName("GanttDatePicker")

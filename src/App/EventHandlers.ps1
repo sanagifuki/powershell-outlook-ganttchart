@@ -85,17 +85,47 @@ function Handle-LogsGridDoubleClick {
     }
 }
 
+function Get-DisplayedGanttTasks {
+    $tasks = @()
+    if (-not $GridGantt -or -not $GridGantt.ItemsSource) {
+        return $tasks
+    }
+
+    foreach ($row in $GridGantt.ItemsSource) {
+        $task = $row["OriginalTask"]
+        if ($task) {
+            $tasks += $task
+        }
+    }
+
+    return $tasks
+}
+
 function Complete-SelectedSchedule {
-    $data = Get-AllData
-    $task = Invoke-CompleteSchedulePicker -Tasks $data.parsed
+    $task = Invoke-CompleteSchedulePicker -Tasks (Get-DisplayedGanttTasks)
     if (-not $task) {
         return
     }
 
-    Set-OutlookAppointmentCompleted -EntryId $task.uid
+    $setCompleted = ($task.ステータス -ne "完了")
+    Set-OutlookAppointmentCompletion -EntryId $task.uid -Completed $setCompleted
     $schedules = Read-JsonArray -Path $TasksFile
-    $schedules = Set-CachedScheduleCompleted -Schedules $schedules -Uid $task.uid
+    $schedules = Set-CachedScheduleCompletion -Schedules $schedules -Uid $task.uid -Completed $setCompleted
     Write-JsonData -Path $TasksFile -Data $schedules
-    Show-Toast "完了にしました: $($task.タイトル)"
-    Invoke-OutlookSync -SuccessPrefix "完了登録後の同期完了"
+    if ($setCompleted) {
+        Show-Toast "完了にしました: $($task.タイトル)"
+    }
+    else {
+        Show-Toast "非完了に戻しました: $($task.タイトル)"
+    }
+    Invoke-OutlookSync -SuccessPrefix "完了切替後の同期完了"
+}
+
+function Edit-SelectedSchedule {
+    $task = Invoke-ScheduleEditPicker -Tasks (Get-DisplayedGanttTasks)
+    if (-not $task) {
+        return
+    }
+
+    Invoke-EditAppointmentForm -Task $task
 }
