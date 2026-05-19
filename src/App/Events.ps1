@@ -35,9 +35,6 @@ $BtnResetView.Add_Click({
         Show-Toast "表示をリセットしました"
     })
 
-$GridSync.Add_MouseDoubleClick({
-        Handle-SyncGridDoubleClick
-    })
 $GridGantt.Add_MouseDoubleClick({
         Handle-GanttGridDoubleClick
     })

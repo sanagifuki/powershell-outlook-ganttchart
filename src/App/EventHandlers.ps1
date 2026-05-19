@@ -27,14 +27,6 @@ function Invoke-OutlookSync {
     }
 }
 
-function Handle-SyncGridDoubleClick {
-    if ($GridSync.CurrentColumn -and $GridSync.CurrentColumn.Header -eq "スケジュール名") {
-        if ($GridSync.CurrentItem) {
-            Invoke-LogForm -task $GridSync.CurrentItem
-        }
-    }
-}
-
 function Handle-GanttGridDoubleClick {
     if (-not $GridGantt.CurrentCell.IsValid) {
         return

@@ -1,6 +1,6 @@
 ﻿# Auto-generated from src/*.ps1 by build.ps1.
 # Edit files under src/ instead of this generated file.
-# Source commit: 8be2299
+# Source commit: 0dc033e
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Drawing
@@ -2549,14 +2549,6 @@ function Invoke-OutlookSync {
     }
 }
 
-function Handle-SyncGridDoubleClick {
-    if ($GridSync.CurrentColumn -and $GridSync.CurrentColumn.Header -eq "スケジュール名") {
-        if ($GridSync.CurrentItem) {
-            Invoke-LogForm -task $GridSync.CurrentItem
-        }
-    }
-}
-
 function Handle-GanttGridDoubleClick {
     if (-not $GridGantt.CurrentCell.IsValid) {
         return
@@ -2688,9 +2680,6 @@ $BtnResetView.Add_Click({
         Show-Toast "表示をリセットしました"
     })
 
-$GridSync.Add_MouseDoubleClick({
-        Handle-SyncGridDoubleClick
-    })
 $GridGantt.Add_MouseDoubleClick({
         Handle-GanttGridDoubleClick
     })
