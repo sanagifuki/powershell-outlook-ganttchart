@@ -1,6 +1,6 @@
 ﻿# Auto-generated from src/*.ps1 by build.ps1.
 # Edit files under src/ instead of this generated file.
-# Source commit: 90c240f
+# Source commit: 33f7679
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Drawing
@@ -1374,25 +1374,15 @@ function Get-AllData {
         <DockPanel Background="#FFFFFF" LastChildFill="False">
             <Menu DockPanel.Dock="Top" BorderThickness="0,0,0,1" BorderBrush="$CLR_BORDER">
                 <MenuItem Header="予定">
-                    <MenuItem Name="BtnSync" Header="Outlook同期">
-                        <MenuItem.Icon><TextBlock Text="↻"/></MenuItem.Icon>
-                    </MenuItem>
+                    <MenuItem Name="BtnSync" Header="Outlook同期"/>
                     <Separator/>
-                    <MenuItem Name="BtnAddAppt" Header="予定追加">
-                        <MenuItem.Icon><TextBlock Text="＋"/></MenuItem.Icon>
-                    </MenuItem>
-                    <MenuItem Name="BtnEditAppt" Header="予定編集">
-                        <MenuItem.Icon><TextBlock Text="✎"/></MenuItem.Icon>
-                    </MenuItem>
+                    <MenuItem Name="BtnAddAppt" Header="予定追加"/>
+                    <MenuItem Name="BtnEditAppt" Header="予定編集"/>
                     <Separator/>
-                    <MenuItem Name="BtnComplete" Header="完了切替">
-                        <MenuItem.Icon><TextBlock Text="✓"/></MenuItem.Icon>
-                    </MenuItem>
+                    <MenuItem Name="BtnComplete" Header="完了切替"/>
                 </MenuItem>
                 <MenuItem Header="表示">
-                    <MenuItem Name="BtnResetView" Header="表示リセット">
-                        <MenuItem.Icon><TextBlock Text="↺"/></MenuItem.Icon>
-                    </MenuItem>
+                    <MenuItem Name="BtnResetView" Header="表示リセット"/>
                     <Separator/>
                     <MenuItem Name="ChkSuppressWeekendHighlight" Header="土日の予定色を抑制" IsCheckable="True"/>
                     <MenuItem Name="ChkTopmost" Header="最前面" IsCheckable="True"/>
