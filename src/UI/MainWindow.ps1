@@ -149,7 +149,6 @@
                     <MenuItem Name="BtnResetView" Header="表示リセット"/>
                 </MenuItem>
                 <MenuItem Header="表示">
-                    <MenuItem Name="ChkLogMode" Header="作業ログ入力モード" IsCheckable="True"/>
                     <MenuItem Name="ChkSuppressWeekendHighlight" Header="土日の予定色を抑制" IsCheckable="True"/>
                     <MenuItem Name="ChkTopmost" Header="最前面" IsCheckable="True"/>
                 </MenuItem>
@@ -162,13 +161,14 @@
                     <TextBlock Text="ガント開始日:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
                     <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,12,0"/>
                     <TextBlock Text="表示日数:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
-                    <ComboBox Name="GanttDaysCombo" Width="52" VerticalAlignment="Center">
+                    <ComboBox Name="GanttDaysCombo" Width="52" VerticalAlignment="Center" Margin="0,0,14,0">
                         <ComboBoxItem Content="14"/>
                         <ComboBoxItem Content="35"/>
                         <ComboBoxItem Content="60"/>
                         <ComboBoxItem Content="90"/>
                         <ComboBoxItem Content="120"/>
                     </ComboBox>
+                    <CheckBox Name="ChkLogMode" Content="作業ログ入力モード" VerticalAlignment="Center" Foreground="#333333" ToolTip="作業ログ入力モード"/>
                 </StackPanel>
             </Border>
         </DockPanel>
