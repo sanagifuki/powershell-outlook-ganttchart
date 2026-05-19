@@ -134,41 +134,44 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
-        <Border Background="#FFFFFF" Padding="10,6" BorderThickness="0,0,0,1" BorderBrush="$CLR_BORDER">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Name="ToolbarPrimaryGroup" Grid.Row="0" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
-                    <Button Name="BtnAddAppt" Content="追加" Padding="12,4" Background="#34A853" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
-                    <Button Name="BtnEditAppt" Content="編集" Padding="12,4" Background="#5F6368" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
-                    <Button Name="BtnComplete" Content="完了切替" Padding="12,4" Background="#1f8d61" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
-                    <Button Name="BtnSync" Content="Outlook同期" Padding="12,4" Background="#1A73E8" Foreground="White" BorderThickness="0" Margin="0,0,10,0" FontWeight="SemiBold" Cursor="Hand"/>
+        <DockPanel Background="#FFFFFF" LastChildFill="False">
+            <Menu DockPanel.Dock="Top" BorderThickness="0,0,0,1" BorderBrush="$CLR_BORDER">
+                <MenuItem Header="ファイル">
+                    <MenuItem Name="BtnSync" Header="Outlook同期"/>
+                    <Separator/>
+                    <MenuItem Name="BtnAddAppt" Header="予定追加"/>
+                    <MenuItem Name="BtnEditAppt" Header="予定編集"/>
+                    <Separator/>
+                    <MenuItem Name="MenuExit" Header="終了"/>
+                </MenuItem>
+                <MenuItem Header="編集">
+                    <MenuItem Name="BtnComplete" Header="完了切替"/>
+                    <MenuItem Name="BtnResetView" Header="表示リセット"/>
+                </MenuItem>
+                <MenuItem Header="表示">
+                    <MenuItem Name="ChkLogMode" Header="作業ログ入力モード" IsCheckable="True"/>
+                    <MenuItem Name="ChkSuppressWeekendHighlight" Header="土日の予定色を抑制" IsCheckable="True"/>
+                    <MenuItem Name="ChkTopmost" Header="最前面" IsCheckable="True"/>
+                </MenuItem>
+                <MenuItem Header="ヘルプ">
+                    <MenuItem Name="BtnHelp" Header="留意事項・ヘルプ"/>
+                </MenuItem>
+            </Menu>
+            <Border DockPanel.Dock="Top" Padding="10,5" BorderThickness="0,0,0,1" BorderBrush="$CLR_BORDER">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="ガント開始日:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
-                    <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,5,0"/>
+                    <DatePicker Name="GanttDatePicker" Width="120" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,12,0"/>
                     <TextBlock Text="表示日数:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#333333"/>
-                    <ComboBox Name="GanttDaysCombo" Width="40" VerticalAlignment="Center">
+                    <ComboBox Name="GanttDaysCombo" Width="52" VerticalAlignment="Center">
                         <ComboBoxItem Content="14"/>
                         <ComboBoxItem Content="35"/>
                         <ComboBoxItem Content="60"/>
                         <ComboBoxItem Content="90"/>
                         <ComboBoxItem Content="120"/>
                     </ComboBox>
-                    <Button Name="BtnResetView" Content="表示リセット" Width="90" Height="24" Margin="10,0,0,0" Background="#F5F5F5" BorderBrush="$CLR_BORDER" Cursor="Hand"/>
                 </StackPanel>
-                <StackPanel Name="ToolbarSecondaryGroup" Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0">
-                    <CheckBox Name="ChkLogMode" Content="作業ログ入力モード" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#333333" ToolTip="作業ログ入力モード"/>
-                    <CheckBox Name="ChkSuppressWeekendHighlight" Content="土日の予定色を抑制" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#333333" ToolTip="土日の予定色を抑制"/>
-                    <CheckBox Name="ChkTopmost" Content="最前面" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#333333" ToolTip="最前面に固定"/>
-                    <Button Name="BtnHelp" Content="？" Width="22" Height="22" Background="#F0F0F0" Foreground="#555555" BorderBrush="$CLR_BORDER" Cursor="Hand" ToolTip="留意事項を表示します"/>
-                </StackPanel>
-            </Grid>
-        </Border>
+            </Border>
+        </DockPanel>
         
         <TabControl Name="MainTab" Grid.Row="1" Background="Transparent" BorderThickness="1" BorderBrush="$CLR_BORDER" Margin="6" Padding="0">
             <TabItem Header="🔍 カレンダー同期">
@@ -365,8 +368,8 @@ function Initialize-MainWindowControls {
     $script:ChkLogMode = $Window.FindName("ChkLogMode")
     $script:ChkSuppressWeekendHighlight = $Window.FindName("ChkSuppressWeekendHighlight")
     $script:ChkTopmost = $Window.FindName("ChkTopmost")
-    $script:ToolbarSecondaryGroup = $Window.FindName("ToolbarSecondaryGroup")
     $script:BtnHelp = $Window.FindName("BtnHelp")
+    $script:MenuExit = $Window.FindName("MenuExit")
     $script:GridSync = $Window.FindName("GridSync")
     $script:GridGantt = $Window.FindName("GridGantt")
     $script:GridLogs = $Window.FindName("GridLogs")

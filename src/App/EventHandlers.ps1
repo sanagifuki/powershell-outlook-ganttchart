@@ -3,9 +3,15 @@ function Invoke-OutlookSync {
         [string]$SuccessPrefix = "同期完了"
     )
 
-    $previousContent = $BtnSync.Content
+    $isMenuItem = ($BtnSync -is [System.Windows.Controls.MenuItem])
+    $previousContent = if ($isMenuItem) { $BtnSync.Header } else { $BtnSync.Content }
     $BtnSync.IsEnabled = $false
-    $BtnSync.Content = "同期中..."
+    if ($isMenuItem) {
+        $BtnSync.Header = "同期中..."
+    }
+    else {
+        $BtnSync.Content = "同期中..."
+    }
 
     try {
         $syncData = Get-OutlookScheduleSyncData -TargetEmail $TARGET_OUTLOOK_EMAIL
@@ -23,7 +29,12 @@ function Invoke-OutlookSync {
     }
     finally {
         $BtnSync.IsEnabled = $true
-        $BtnSync.Content = $previousContent
+        if ($isMenuItem) {
+            $BtnSync.Header = $previousContent
+        }
+        else {
+            $BtnSync.Content = $previousContent
+        }
     }
 }
 
