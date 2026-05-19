@@ -137,15 +137,15 @@
         <DockPanel Background="#FFFFFF" LastChildFill="False">
             <Menu DockPanel.Dock="Top" BorderThickness="0,0,0,1" BorderBrush="$CLR_BORDER">
                 <MenuItem Header="予定">
-                    <MenuItem Name="BtnSync" Header="Outlook同期"/>
+                    <MenuItem Name="BtnSync" Header="↻ Outlook同期"/>
                     <Separator/>
-                    <MenuItem Name="BtnAddAppt" Header="予定追加"/>
-                    <MenuItem Name="BtnEditAppt" Header="予定編集"/>
+                    <MenuItem Name="BtnAddAppt" Header="＋ 予定追加"/>
+                    <MenuItem Name="BtnEditAppt" Header="✎ 予定編集"/>
                     <Separator/>
-                    <MenuItem Name="BtnComplete" Header="完了切替"/>
+                    <MenuItem Name="BtnComplete" Header="✓ 完了切替"/>
                 </MenuItem>
                 <MenuItem Header="表示">
-                    <MenuItem Name="BtnResetView" Header="表示リセット"/>
+                    <MenuItem Name="BtnResetView" Header="↺ 表示リセット"/>
                     <Separator/>
                     <MenuItem Name="ChkSuppressWeekendHighlight" Header="土日の予定色を抑制" IsCheckable="True"/>
                     <MenuItem Name="ChkTopmost" Header="最前面" IsCheckable="True"/>
