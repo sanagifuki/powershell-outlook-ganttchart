@@ -1,7 +1,7 @@
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="スケジュール管理システム" Height="600" Width="769" MinWidth="769" MinHeight="600"
+        Title="OutGantt" Height="600" Width="769" MinWidth="769" MinHeight="600"
         Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_MAIN"
         TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterScreen">
     <Window.Resources>

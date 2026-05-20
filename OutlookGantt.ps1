@@ -1,6 +1,6 @@
 ﻿# Auto-generated from src/*.ps1 by build.ps1.
 # Edit files under src/ instead of this generated file.
-# Source commit: 03d97b5
+# Source commit: ef865ef
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Drawing
@@ -1207,7 +1207,8 @@ function Add-OutlookAppointment {
         [string]$StartTime,
         [string]$EndTime,
         [bool]$IsPrivate = $true,
-        [bool]$ShowAsFree = $true
+        [bool]$ShowAsFree = $true,
+        [string]$Categories = ""
     )
 
     $outlook = New-Object -ComObject Outlook.Application
@@ -1218,6 +1219,9 @@ function Add-OutlookAppointment {
     $appointment.BusyStatus = if ($ShowAsFree) { 0 } else { 2 }
     $appointment.Sensitivity = if ($IsPrivate) { 2 } else { 0 }
     $appointment.ReminderSet = $false
+    if (-not [string]::IsNullOrWhiteSpace($Categories)) {
+        $appointment.Categories = $Categories
+    }
 
     if ($IsTimed) {
         $appointment.AllDayEvent = $false
@@ -1231,6 +1235,7 @@ function Add-OutlookAppointment {
     }
 
     $appointment.Save()
+    return $appointment.EntryID
 }
 
 function Get-OutlookAppointmentOptions {
@@ -1327,7 +1332,7 @@ function Get-AllData {
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="スケジュール管理システム" Height="600" Width="769" MinWidth="769" MinHeight="600"
+        Title="OutGantt" Height="600" Width="769" MinWidth="769" MinHeight="600"
         Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_MAIN"
         TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterScreen">
     <Window.Resources>

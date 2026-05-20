@@ -76,7 +76,8 @@ function Add-OutlookAppointment {
         [string]$StartTime,
         [string]$EndTime,
         [bool]$IsPrivate = $true,
-        [bool]$ShowAsFree = $true
+        [bool]$ShowAsFree = $true,
+        [string]$Categories = ""
     )
 
     $outlook = New-Object -ComObject Outlook.Application
@@ -87,6 +88,9 @@ function Add-OutlookAppointment {
     $appointment.BusyStatus = if ($ShowAsFree) { 0 } else { 2 }
     $appointment.Sensitivity = if ($IsPrivate) { 2 } else { 0 }
     $appointment.ReminderSet = $false
+    if (-not [string]::IsNullOrWhiteSpace($Categories)) {
+        $appointment.Categories = $Categories
+    }
 
     if ($IsTimed) {
         $appointment.AllDayEvent = $false
@@ -100,6 +104,7 @@ function Add-OutlookAppointment {
     }
 
     $appointment.Save()
+    return $appointment.EntryID
 }
 
 function Get-OutlookAppointmentOptions {
