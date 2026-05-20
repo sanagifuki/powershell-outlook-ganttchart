@@ -87,6 +87,7 @@
             <Style.Triggers>
                 <DataTrigger Binding="{Binding ステータス}" Value="未着手"><Setter Property="Background" Value="$CLR_STA_UNSTARTED_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_STA_UNSTARTED_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding ステータス}" Value="完了"><Setter Property="Background" Value="$CLR_STA_COMPLETED_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_STA_COMPLETED_FG"/></DataTrigger>
+                <DataTrigger Binding="{Binding ステータス}" Value="保留"><Setter Property="Background" Value="$CLR_STA_HOLD_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_STA_HOLD_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding ステータス}" Value="廃棄"><Setter Property="Background" Value="$CLR_STA_DISCARDED_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_STA_DISCARDED_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding ステータス}" Value="表示"><Setter Property="Background" Value="$CLR_STA_DISPLAY_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_STA_DISPLAY_FG"/></DataTrigger>
             </Style.Triggers>
@@ -142,7 +143,7 @@
                     <MenuItem Name="BtnAddAppt" Header="予定追加"/>
                     <MenuItem Name="BtnEditAppt" Header="予定編集"/>
                     <Separator/>
-                    <MenuItem Name="BtnComplete" Header="完了切替"/>
+                    <MenuItem Name="BtnComplete" Header="ステータス切替"/>
                 </MenuItem>
                 <MenuItem Header="表示">
                     <MenuItem Name="BtnResetView" Header="表示リセット"/>
@@ -180,6 +181,9 @@
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding ステータス}" Value="完了">
                                     <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ステータス}" Value="保留">
+                                    <Setter Property="Background" Value="$CLR_ROW_HOLD"/>
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
                                     <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
@@ -243,6 +247,9 @@
                                         <DataTrigger Binding="{Binding ステータス}" Value="完了">
                                             <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
                                         </DataTrigger>
+                                        <DataTrigger Binding="{Binding ステータス}" Value="保留">
+                                            <Setter Property="Background" Value="$CLR_ROW_HOLD"/>
+                                        </DataTrigger>
                                         <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
                                             <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
                                         </DataTrigger>
@@ -268,6 +275,9 @@
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ステータス}" Value="完了">
                                             <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ステータス}" Value="保留">
+                                            <Setter Property="Background" Value="$CLR_ROW_HOLD"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
                                             <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>

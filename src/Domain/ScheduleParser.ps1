@@ -7,6 +7,9 @@ function Get-ScheduleStatus {
     if ($Categories -like "*完了*") {
         return "完了"
     }
+    if ($Categories -like "*保留*") {
+        return "保留"
+    }
     if ($Categories -like "*廃止*") {
         return "廃棄"
     }

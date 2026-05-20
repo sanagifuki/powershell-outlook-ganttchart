@@ -1,6 +1,6 @@
 ﻿# Auto-generated from src/*.ps1 by build.ps1.
 # Edit files under src/ instead of this generated file.
-# Source commit: 33f7679
+# Source commit: 6160e8a
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Drawing
@@ -65,6 +65,7 @@ $CLR_GANTT_HDR_FG = "#333333"   # ヘッダー文字（通常）
 # ガントチャート - ステータス行色
 $CLR_ROW_COMPLETED = "#B7E1CD"   # 完了行: 薄緑
 $CLR_ROW_DISPLAY = "#FFE282"   # 表示行: 薄黄
+$CLR_ROW_HOLD = "#D8B4FE"   # 保留行: 薄紫
 $CLR_ROW_DISCARDED = "#999999"   # 廃棄行: グレー
 
 # セル選択色
@@ -95,6 +96,7 @@ $CLR_TITLE_CELL_BG = "#bad1e4" # スケジュール名列の背景色: 薄い水
 # ステータス別バッジ色
 $CLR_STA_UNSTARTED_BG = "#dddfe2"; $CLR_STA_UNSTARTED_FG = "#363636" # 未着手
 $CLR_STA_COMPLETED_BG = "#1f8d61"; $CLR_STA_COMPLETED_FG = "#dae9d9" # 完了
+$CLR_STA_HOLD_BG = "#5A3286"; $CLR_STA_HOLD_FG = "#E5CFF2" # 保留
 $CLR_STA_DISCARDED_BG = "#3D3D3D"; $CLR_STA_DISCARDED_FG = "#ffffff" # 廃棄
 $CLR_STA_DISPLAY_BG = "#FFD156"; $CLR_STA_DISPLAY_FG = "#363636" # 表示
 
@@ -447,6 +449,9 @@ function Get-ScheduleStatus {
     if ($Categories -like "*完了*") {
         return "完了"
     }
+    if ($Categories -like "*保留*") {
+        return "保留"
+    }
     if ($Categories -like "*廃止*") {
         return "廃棄"
     }
@@ -581,6 +586,40 @@ function Set-CachedScheduleCompleted {
     )
 
     Set-CachedScheduleCompletion -Schedules $Schedules -Uid $Uid -Completed $true
+}
+
+function ConvertTo-StatusCategories {
+    param(
+        [string]$Categories,
+        [string]$Status
+    )
+
+    $result = Remove-CategoryText -Categories $Categories -Category "完了"
+    $result = Remove-CategoryText -Categories $result -Category "保留"
+    $result = Remove-CategoryText -Categories $result -Category "廃止"
+
+    switch ($Status) {
+        "完了" { return (Add-CategoryText -Categories $result -Category "完了") }
+        "保留" { return (Add-CategoryText -Categories $result -Category "保留") }
+        "廃棄" { return (Add-CategoryText -Categories $result -Category "廃止") }
+        default { return $result }
+    }
+}
+
+function Set-CachedScheduleStatus {
+    param(
+        [array]$Schedules,
+        [string]$Uid,
+        [string]$Status
+    )
+
+    foreach ($schedule in $Schedules) {
+        if ($schedule.uid -eq $Uid) {
+            $schedule.categories = ConvertTo-StatusCategories -Categories $schedule.categories -Status $Status
+        }
+    }
+
+    return @($Schedules)
 }
 
 function Get-CompletionToggleSchedules {
@@ -1225,6 +1264,19 @@ function Set-OutlookAppointmentCompletion {
     }
     $appointment.Save()
 }
+
+function Set-OutlookAppointmentStatus {
+    param(
+        [string]$EntryId,
+        [string]$Status
+    )
+
+    $outlook = New-Object -ComObject Outlook.Application
+    $namespace = $outlook.GetNamespace("MAPI")
+    $appointment = $namespace.GetItemFromID($EntryId)
+    $appointment.Categories = ConvertTo-StatusCategories -Categories $appointment.Categories -Status $Status
+    $appointment.Save()
+}
 function Get-AllData {
     $tasks = Read-JsonArray -Path $TasksFile
     $logs = Read-JsonArray -Path $LogsFile
@@ -1324,6 +1376,7 @@ function Get-AllData {
             <Style.Triggers>
                 <DataTrigger Binding="{Binding ステータス}" Value="未着手"><Setter Property="Background" Value="$CLR_STA_UNSTARTED_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_STA_UNSTARTED_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding ステータス}" Value="完了"><Setter Property="Background" Value="$CLR_STA_COMPLETED_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_STA_COMPLETED_FG"/></DataTrigger>
+                <DataTrigger Binding="{Binding ステータス}" Value="保留"><Setter Property="Background" Value="$CLR_STA_HOLD_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_STA_HOLD_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding ステータス}" Value="廃棄"><Setter Property="Background" Value="$CLR_STA_DISCARDED_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_STA_DISCARDED_FG"/></DataTrigger>
                 <DataTrigger Binding="{Binding ステータス}" Value="表示"><Setter Property="Background" Value="$CLR_STA_DISPLAY_BG"/><Setter Property="TextBlock.Foreground" Value="$CLR_STA_DISPLAY_FG"/></DataTrigger>
             </Style.Triggers>
@@ -1379,7 +1432,7 @@ function Get-AllData {
                     <MenuItem Name="BtnAddAppt" Header="予定追加"/>
                     <MenuItem Name="BtnEditAppt" Header="予定編集"/>
                     <Separator/>
-                    <MenuItem Name="BtnComplete" Header="完了切替"/>
+                    <MenuItem Name="BtnComplete" Header="ステータス切替"/>
                 </MenuItem>
                 <MenuItem Header="表示">
                     <MenuItem Name="BtnResetView" Header="表示リセット"/>
@@ -1417,6 +1470,9 @@ function Get-AllData {
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding ステータス}" Value="完了">
                                     <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ステータス}" Value="保留">
+                                    <Setter Property="Background" Value="$CLR_ROW_HOLD"/>
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
                                     <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
@@ -1480,6 +1536,9 @@ function Get-AllData {
                                         <DataTrigger Binding="{Binding ステータス}" Value="完了">
                                             <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
                                         </DataTrigger>
+                                        <DataTrigger Binding="{Binding ステータス}" Value="保留">
+                                            <Setter Property="Background" Value="$CLR_ROW_HOLD"/>
+                                        </DataTrigger>
                                         <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
                                             <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
                                         </DataTrigger>
@@ -1505,6 +1564,9 @@ function Get-AllData {
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ステータス}" Value="完了">
                                             <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ステータス}" Value="保留">
+                                            <Setter Property="Background" Value="$CLR_ROW_HOLD"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
                                             <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
@@ -1663,6 +1725,9 @@ function New-GanttFixedCellStyle {
         </Trigger>
         <DataTrigger Binding="{Binding ステータス}" Value="完了">
             <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding ステータス}" Value="保留">
+            <Setter Property="Background" Value="$CLR_ROW_HOLD"/>
         </DataTrigger>
         <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
             <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
@@ -2279,34 +2344,44 @@ function Invoke-LogForm {
     }
 }
 
-function Invoke-CompleteSchedulePicker {
+function Invoke-StatusSchedulePicker {
     param([array]$Tasks)
 
     $items = Get-CompletionToggleSchedules -Schedules $Tasks
     if ($items.Count -eq 0) {
-        Show-Toast "切り替えできるスケジュールがありません"
+        Show-Toast "ステータスを変更できるスケジュールがありません"
         return $null
     }
 
     [xml]$xaml = @"
     <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            Title="完了切替" Height="190" Width="520"
+            Title="ステータス切替" Height="220" Width="520"
             Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
             TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
         <Grid Margin="14">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <TextBlock Text="完了状態を切り替えるスケジュール" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <TextBlock Text="ステータスを変更するスケジュール" FontWeight="SemiBold" Margin="0,0,0,6"/>
             <ComboBox Name="ComboSchedule" Grid.Row="1" Height="28" DisplayMemberPath="DisplayText"/>
-            <TextBlock Name="TxtMemo" Grid.Row="2" TextWrapping="Wrap" Foreground="#666666" Margin="0,8,0,0"/>
-            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <StackPanel Grid.Row="2" Margin="0,8,0,0">
+                <TextBlock Text="変更後ステータス" Foreground="#666666" Margin="0,0,0,2"/>
+                <ComboBox Name="ComboStatus" Height="28">
+                    <ComboBoxItem Content="未着手"/>
+                    <ComboBoxItem Content="完了"/>
+                    <ComboBoxItem Content="保留"/>
+                    <ComboBoxItem Content="廃棄"/>
+                </ComboBox>
+            </StackPanel>
+            <TextBlock Name="TxtMemo" Grid.Row="3" TextWrapping="Wrap" Foreground="#666666" Margin="0,8,0,0"/>
+            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                 <Button Name="BtnCancel" Content="キャンセル" Width="90" Height="28" Margin="0,0,8,0"/>
-                <Button Name="BtnOk" Content="完了にする" Width="110" Height="28" Background="#1f8d61" Foreground="White" BorderThickness="0"/>
+                <Button Name="BtnOk" Content="変更する" Width="100" Height="28" Background="#1A73E8" Foreground="White" BorderThickness="0"/>
             </StackPanel>
         </Grid>
     </Window>
@@ -2317,34 +2392,43 @@ function Invoke-CompleteSchedulePicker {
     $window.Owner = $Form
 
     $combo = $window.FindName("ComboSchedule")
+    $comboStatus = $window.FindName("ComboStatus")
     $memo = $window.FindName("TxtMemo")
     $btnOk = $window.FindName("BtnOk")
     $btnCancel = $window.FindName("BtnCancel")
 
     $comboItems = @($items | ForEach-Object {
-            $_ | Add-Member -MemberType NoteProperty -Name DisplayText -Value "$($_.開始日) $($_.タイトル)" -Force
+            $_ | Add-Member -MemberType NoteProperty -Name DisplayText -Value "$($_.開始日) [$($_.ステータス)] $($_.タイトル)" -Force
             $_
         })
     $combo.ItemsSource = $comboItems
     $combo.SelectedIndex = 0
 
-    $updateTogglePreview = {
+    $selectStatus = {
         if ($combo.SelectedItem) {
-            if ($combo.SelectedItem.ステータス -eq "完了") {
-                $memo.Text = "現在: 完了 / 実行後: 非完了に戻す"
-                $btnOk.Content = "非完了に戻す"
-                $btnOk.Background = "#5F6368"
-            }
-            else {
-                $memo.Text = "現在: $($combo.SelectedItem.ステータス) / 実行後: 完了にする"
-                $btnOk.Content = "完了にする"
-                $btnOk.Background = "#1f8d61"
+            $status = [string]$combo.SelectedItem.ステータス
+            if ($status -eq "表示") { $status = "未着手" }
+            for ($i = 0; $i -lt $comboStatus.Items.Count; $i++) {
+                if ([string]$comboStatus.Items[$i].Content -eq $status) {
+                    $comboStatus.SelectedIndex = $i
+                    break
+                }
             }
         }
     }
+    $updatePreview = {
+        if ($combo.SelectedItem -and $comboStatus.SelectedItem) {
+            $memo.Text = "現在: $($combo.SelectedItem.ステータス) / 変更後: $($comboStatus.SelectedItem.Content)"
+        }
+    }
 
-    $combo.Add_SelectionChanged({ & $updateTogglePreview })
-    & $updateTogglePreview
+    $combo.Add_SelectionChanged({
+            & $selectStatus
+            & $updatePreview
+        })
+    $comboStatus.Add_SelectionChanged({ & $updatePreview })
+    & $selectStatus
+    & $updatePreview
 
     $btnCancel.Add_Click({
             $window.DialogResult = $false
@@ -2360,10 +2444,22 @@ function Invoke-CompleteSchedulePicker {
         })
 
     if ($window.ShowDialog() -eq $true) {
-        return $combo.SelectedItem
+        return [PSCustomObject]@{
+            Task = $combo.SelectedItem
+            Status = [string]$comboStatus.SelectedItem.Content
+        }
     }
 
     return $null
+}
+
+function Invoke-CompleteSchedulePicker {
+    param([array]$Tasks)
+
+    $result = Invoke-StatusSchedulePicker -Tasks $Tasks
+    if (-not $result) { return $null }
+
+    return $result.Task
 }
 
 function Invoke-ScheduleEditPicker {
@@ -2632,24 +2728,24 @@ function Get-DisplayedGanttTasks {
     return $tasks
 }
 
-function Complete-SelectedSchedule {
-    $task = Invoke-CompleteSchedulePicker -Tasks (Get-DisplayedGanttTasks)
-    if (-not $task) {
+function Change-SelectedScheduleStatus {
+    $result = Invoke-StatusSchedulePicker -Tasks (Get-DisplayedGanttTasks)
+    if (-not $result) {
         return
     }
 
-    $setCompleted = ($task.ステータス -ne "完了")
-    Set-OutlookAppointmentCompletion -EntryId $task.uid -Completed $setCompleted
+    $task = $result.Task
+    $status = $result.Status
+    Set-OutlookAppointmentStatus -EntryId $task.uid -Status $status
     $schedules = Read-JsonArray -Path $TasksFile
-    $schedules = Set-CachedScheduleCompletion -Schedules $schedules -Uid $task.uid -Completed $setCompleted
+    $schedules = Set-CachedScheduleStatus -Schedules $schedules -Uid $task.uid -Status $status
     Write-JsonData -Path $TasksFile -Data $schedules
-    if ($setCompleted) {
-        Show-Toast "完了にしました: $($task.タイトル)"
-    }
-    else {
-        Show-Toast "非完了に戻しました: $($task.タイトル)"
-    }
-    Invoke-OutlookSync -SuccessPrefix "完了切替後の同期完了"
+    Show-Toast "ステータスを変更しました: $($task.タイトル) => $status"
+    Invoke-OutlookSync -SuccessPrefix "ステータス切替後の同期完了"
+}
+
+function Complete-SelectedSchedule {
+    Change-SelectedScheduleStatus
 }
 
 function Edit-SelectedSchedule {
@@ -2674,10 +2770,10 @@ $ChkTopmost.Add_Unchecked({ $Form.Topmost = $false })
 
 $BtnComplete.Add_Click({
         try {
-            Complete-SelectedSchedule
+            Change-SelectedScheduleStatus
         }
         catch {
-            Show-Toast "完了切替に失敗: $($_.Exception.Message)"
+            Show-Toast "ステータス切替に失敗: $($_.Exception.Message)"
         }
     })
 

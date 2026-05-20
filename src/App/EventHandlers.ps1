@@ -104,24 +104,24 @@ function Get-DisplayedGanttTasks {
     return $tasks
 }
 
-function Complete-SelectedSchedule {
-    $task = Invoke-CompleteSchedulePicker -Tasks (Get-DisplayedGanttTasks)
-    if (-not $task) {
+function Change-SelectedScheduleStatus {
+    $result = Invoke-StatusSchedulePicker -Tasks (Get-DisplayedGanttTasks)
+    if (-not $result) {
         return
     }
 
-    $setCompleted = ($task.ステータス -ne "完了")
-    Set-OutlookAppointmentCompletion -EntryId $task.uid -Completed $setCompleted
+    $task = $result.Task
+    $status = $result.Status
+    Set-OutlookAppointmentStatus -EntryId $task.uid -Status $status
     $schedules = Read-JsonArray -Path $TasksFile
-    $schedules = Set-CachedScheduleCompletion -Schedules $schedules -Uid $task.uid -Completed $setCompleted
+    $schedules = Set-CachedScheduleStatus -Schedules $schedules -Uid $task.uid -Status $status
     Write-JsonData -Path $TasksFile -Data $schedules
-    if ($setCompleted) {
-        Show-Toast "完了にしました: $($task.タイトル)"
-    }
-    else {
-        Show-Toast "非完了に戻しました: $($task.タイトル)"
-    }
-    Invoke-OutlookSync -SuccessPrefix "完了切替後の同期完了"
+    Show-Toast "ステータスを変更しました: $($task.タイトル) => $status"
+    Invoke-OutlookSync -SuccessPrefix "ステータス切替後の同期完了"
+}
+
+function Complete-SelectedSchedule {
+    Change-SelectedScheduleStatus
 }
 
 function Edit-SelectedSchedule {

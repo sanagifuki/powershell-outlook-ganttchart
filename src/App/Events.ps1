@@ -12,10 +12,10 @@ $ChkTopmost.Add_Unchecked({ $Form.Topmost = $false })
 
 $BtnComplete.Add_Click({
         try {
-            Complete-SelectedSchedule
+            Change-SelectedScheduleStatus
         }
         catch {
-            Show-Toast "完了切替に失敗: $($_.Exception.Message)"
+            Show-Toast "ステータス切替に失敗: $($_.Exception.Message)"
         }
     })
 

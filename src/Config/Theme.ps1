@@ -23,7 +23,8 @@ $CLR_GANTT_HDR_FG = "#333333"   # ヘッダー文字（通常）
 # ガントチャート - ステータス行色
 $CLR_ROW_COMPLETED = "#B7E1CD"   # 完了行: 薄緑
 $CLR_ROW_DISPLAY = "#FFE282"   # 表示行: 薄黄
-$CLR_ROW_DISCARDED = "#999999"   # 廃棄行: グレー
+$CLR_ROW_HOLD = "#dacde9"   # 保留行: 薄紫
+$CLR_ROW_DISCARDED = "#a8a8a8"   # 廃棄行: グレー
 
 # セル選択色
 $CLR_SELECTED_BORDER = "#0058af"   # 選択セル枠
@@ -53,6 +54,7 @@ $CLR_TITLE_CELL_BG = "#bad1e4" # スケジュール名列の背景色: 薄い水
 # ステータス別バッジ色
 $CLR_STA_UNSTARTED_BG = "#dddfe2"; $CLR_STA_UNSTARTED_FG = "#363636" # 未着手
 $CLR_STA_COMPLETED_BG = "#1f8d61"; $CLR_STA_COMPLETED_FG = "#dae9d9" # 完了
+$CLR_STA_HOLD_BG = "#5A3286"; $CLR_STA_HOLD_FG = "#E5CFF2" # 保留
 $CLR_STA_DISCARDED_BG = "#3D3D3D"; $CLR_STA_DISCARDED_FG = "#ffffff" # 廃棄
 $CLR_STA_DISPLAY_BG = "#FFD156"; $CLR_STA_DISPLAY_FG = "#363636" # 表示
 

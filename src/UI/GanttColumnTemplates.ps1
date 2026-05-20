@@ -11,6 +11,9 @@ function New-GanttFixedCellStyle {
         <DataTrigger Binding="{Binding ステータス}" Value="完了">
             <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
         </DataTrigger>
+        <DataTrigger Binding="{Binding ステータス}" Value="保留">
+            <Setter Property="Background" Value="$CLR_ROW_HOLD"/>
+        </DataTrigger>
         <DataTrigger Binding="{Binding ステータス}" Value="廃棄">
             <Setter Property="Background" Value="$CLR_ROW_DISCARDED"/>
         </DataTrigger>

@@ -58,6 +58,40 @@ function Set-CachedScheduleCompleted {
     Set-CachedScheduleCompletion -Schedules $Schedules -Uid $Uid -Completed $true
 }
 
+function ConvertTo-StatusCategories {
+    param(
+        [string]$Categories,
+        [string]$Status
+    )
+
+    $result = Remove-CategoryText -Categories $Categories -Category "完了"
+    $result = Remove-CategoryText -Categories $result -Category "保留"
+    $result = Remove-CategoryText -Categories $result -Category "廃止"
+
+    switch ($Status) {
+        "完了" { return (Add-CategoryText -Categories $result -Category "完了") }
+        "保留" { return (Add-CategoryText -Categories $result -Category "保留") }
+        "廃棄" { return (Add-CategoryText -Categories $result -Category "廃止") }
+        default { return $result }
+    }
+}
+
+function Set-CachedScheduleStatus {
+    param(
+        [array]$Schedules,
+        [string]$Uid,
+        [string]$Status
+    )
+
+    foreach ($schedule in $Schedules) {
+        if ($schedule.uid -eq $Uid) {
+            $schedule.categories = ConvertTo-StatusCategories -Categories $schedule.categories -Status $Status
+        }
+    }
+
+    return @($Schedules)
+}
+
 function Get-CompletionToggleSchedules {
     param([array]$Schedules)
 

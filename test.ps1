@@ -80,6 +80,8 @@ Assert-True (-not (Test-TimeText -Text '9時')) 'Invalid time should fail.'
 
 Assert-Equal (Add-CategoryText -Categories '' -Category '完了') '完了' 'Empty category completion failed.'
 Assert-Equal (Add-CategoryText -Categories '業務' -Category '完了') '業務, 完了' 'Category append failed.'
+Assert-Equal (ConvertTo-StatusCategories -Categories '業務, 完了' -Status '保留') '業務, 保留' 'Status category hold conversion failed.'
+Assert-Equal (ConvertTo-StatusCategories -Categories '業務, 保留' -Status '未着手') '業務' 'Status category unstarted conversion failed.'
 $completedSchedules = @(Set-CachedScheduleCompleted -Schedules @([PSCustomObject]@{
     uid = '1'
     categories = '業務'

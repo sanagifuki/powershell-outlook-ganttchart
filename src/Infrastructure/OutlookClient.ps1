@@ -170,3 +170,16 @@ function Set-OutlookAppointmentCompletion {
     }
     $appointment.Save()
 }
+
+function Set-OutlookAppointmentStatus {
+    param(
+        [string]$EntryId,
+        [string]$Status
+    )
+
+    $outlook = New-Object -ComObject Outlook.Application
+    $namespace = $outlook.GetNamespace("MAPI")
+    $appointment = $namespace.GetItemFromID($EntryId)
+    $appointment.Categories = ConvertTo-StatusCategories -Categories $appointment.Categories -Status $Status
+    $appointment.Save()
+}
