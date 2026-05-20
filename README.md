@@ -1,8 +1,8 @@
-# OutGantt
-
 <p align="center">
   <img src="docs/header.png" alt="OutGantt">
 </p>
+
+# OutGantt: Outlook予定のガントチャート表示ツール
 
 Outlook の予定を取得し、作業ログと合わせてガントチャート表示する PowerShell/WPF アプリ。
 会社PCに単一ファイルで持ち出せることを重視しつつ、開発時は `src/` 配下の分割ファイルで編集できる構成にしている。
