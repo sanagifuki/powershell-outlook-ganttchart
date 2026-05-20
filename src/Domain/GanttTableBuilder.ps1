@@ -80,13 +80,14 @@ function ConvertTo-GanttDataView {
         [datetime]$StartDate,
         [int]$Days,
         [datetime]$BaseDate = (Get-Date),
-        [bool]$SuppressWeekendScheduleHighlight = $false
+        [bool]$SuppressWeekendScheduleHighlight = $false,
+        [array]$HiddenStatuses = @()
     )
 
     $todayText = $BaseDate.ToString("yyyy/MM/dd")
     $table = New-GanttDataTable -StartDate $StartDate -Days $Days
 
-    foreach ($task in (Select-GanttVisibleTasks -Tasks $Tasks -BaseDate $BaseDate)) {
+    foreach ($task in (Select-GanttVisibleTasks -Tasks $Tasks -BaseDate $BaseDate -HiddenStatuses $HiddenStatuses)) {
         Add-GanttTaskRow -DataTable $table -Task $task -Logs $Logs -StartDate $StartDate -Days $Days -TodayText $todayText -SuppressWeekendScheduleHighlight $SuppressWeekendScheduleHighlight
     }
 

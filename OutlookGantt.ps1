@@ -1,6 +1,6 @@
 ﻿# Auto-generated from src/*.ps1 by build.ps1.
 # Edit files under src/ instead of this generated file.
-# Source commit: 6160e8a
+# Source commit: 505ab51
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Drawing
@@ -65,8 +65,8 @@ $CLR_GANTT_HDR_FG = "#333333"   # ヘッダー文字（通常）
 # ガントチャート - ステータス行色
 $CLR_ROW_COMPLETED = "#B7E1CD"   # 完了行: 薄緑
 $CLR_ROW_DISPLAY = "#FFE282"   # 表示行: 薄黄
-$CLR_ROW_HOLD = "#D8B4FE"   # 保留行: 薄紫
-$CLR_ROW_DISCARDED = "#999999"   # 廃棄行: グレー
+$CLR_ROW_HOLD = "#dacde9"   # 保留行: 薄紫
+$CLR_ROW_DISCARDED = "#a8a8a8"   # 廃棄行: グレー
 
 # セル選択色
 $CLR_SELECTED_BORDER = "#0058af"   # 選択セル枠
@@ -202,6 +202,7 @@ function Get-DefaultAppSettings {
         logInputModeDefault = $true
         suppressWeekendScheduleHighlightDefault = $false
         topmostDefault = $false
+        hiddenStatusesDefault = @()
         addAppointmentPrivateDefault = $true
         addAppointmentShowAsFreeDefault = $true
         addAppointmentTypeDefaultSymbol = "◆"
@@ -964,12 +965,26 @@ function Get-RecentClosedTaskUids {
     return @($completedUids + $discardedUids)
 }
 
+function Test-TaskStatusVisible {
+    param(
+        $Task,
+        [array]$HiddenStatuses = @()
+    )
+
+    return ($HiddenStatuses -notcontains $Task.ステータス)
+}
+
 function Test-GanttTaskVisible {
     param(
         $Task,
         [array]$RecentClosedTaskUids,
-        [string]$UnstartedEndLimitText
+        [string]$UnstartedEndLimitText,
+        [array]$HiddenStatuses = @()
     )
+
+    if (-not (Test-TaskStatusVisible -Task $Task -HiddenStatuses $HiddenStatuses)) {
+        return $false
+    }
 
     if (($Task.ステータス -eq "完了" -or $Task.ステータス -eq "廃棄") -and $RecentClosedTaskUids -notcontains $Task.uid) {
         return $false
@@ -985,19 +1000,19 @@ function Test-GanttTaskVisible {
 function Select-GanttVisibleTasks {
     param(
         [array]$Tasks,
-        [datetime]$BaseDate = (Get-Date)
+        [datetime]$BaseDate = (Get-Date),
+        [array]$HiddenStatuses = @()
     )
 
     $recentClosedTaskUids = Get-RecentClosedTaskUids -Tasks $Tasks
     $unstartedEndLimitText = $BaseDate.AddDays(44).ToString("yyyy/MM/dd")
 
     foreach ($task in $Tasks) {
-        if (Test-GanttTaskVisible -Task $task -RecentClosedTaskUids $recentClosedTaskUids -UnstartedEndLimitText $unstartedEndLimitText) {
+        if (Test-GanttTaskVisible -Task $task -RecentClosedTaskUids $recentClosedTaskUids -UnstartedEndLimitText $unstartedEndLimitText -HiddenStatuses $HiddenStatuses) {
             $task
         }
     }
 }
-
 function New-GanttDataTable {
     param(
         [datetime]$StartDate,
@@ -1080,13 +1095,14 @@ function ConvertTo-GanttDataView {
         [datetime]$StartDate,
         [int]$Days,
         [datetime]$BaseDate = (Get-Date),
-        [bool]$SuppressWeekendScheduleHighlight = $false
+        [bool]$SuppressWeekendScheduleHighlight = $false,
+        [array]$HiddenStatuses = @()
     )
 
     $todayText = $BaseDate.ToString("yyyy/MM/dd")
     $table = New-GanttDataTable -StartDate $StartDate -Days $Days
 
-    foreach ($task in (Select-GanttVisibleTasks -Tasks $Tasks -BaseDate $BaseDate)) {
+    foreach ($task in (Select-GanttVisibleTasks -Tasks $Tasks -BaseDate $BaseDate -HiddenStatuses $HiddenStatuses)) {
         Add-GanttTaskRow -DataTable $table -Task $task -Logs $Logs -StartDate $StartDate -Days $Days -TodayText $todayText -SuppressWeekendScheduleHighlight $SuppressWeekendScheduleHighlight
     }
 
@@ -1438,6 +1454,10 @@ function Get-AllData {
                     <MenuItem Name="BtnResetView" Header="表示リセット"/>
                     <Separator/>
                     <MenuItem Name="ChkSuppressWeekendHighlight" Header="土日の予定色を抑制" IsCheckable="True"/>
+                    <Separator/>
+                    <MenuItem Name="ChkHideHold" Header="保留を非表示" IsCheckable="True"/>
+                    <MenuItem Name="ChkHideDiscarded" Header="廃棄を非表示" IsCheckable="True"/>
+                    <MenuItem Name="ChkHideCompleted" Header="完了を非表示" IsCheckable="True"/>
                     <MenuItem Name="ChkTopmost" Header="最前面" IsCheckable="True"/>
                 </MenuItem>
                 <MenuItem Header="ヘルプ">
@@ -1664,6 +1684,9 @@ function Initialize-MainWindowControls {
     $script:BtnResetView = $Window.FindName("BtnResetView")
     $script:ChkLogMode = $Window.FindName("ChkLogMode")
     $script:ChkSuppressWeekendHighlight = $Window.FindName("ChkSuppressWeekendHighlight")
+    $script:ChkHideHold = $Window.FindName("ChkHideHold")
+    $script:ChkHideDiscarded = $Window.FindName("ChkHideDiscarded")
+    $script:ChkHideCompleted = $Window.FindName("ChkHideCompleted")
     $script:ChkTopmost = $Window.FindName("ChkTopmost")
     $script:BtnHelp = $Window.FindName("BtnHelp")
     $script:GridSync = $Window.FindName("GridSync")
@@ -1681,6 +1704,10 @@ Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content ([string]$AppSet
 if ($GanttDaysCombo.SelectedIndex -lt 0) { Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content "35" }
 $ChkLogMode.IsChecked = [bool]$AppSettings.logInputModeDefault
 $ChkSuppressWeekendHighlight.IsChecked = [bool]$AppSettings.suppressWeekendScheduleHighlightDefault
+$hiddenStatusesDefault = @($AppSettings.hiddenStatusesDefault)
+$ChkHideHold.IsChecked = ($hiddenStatusesDefault -contains "保留")
+$ChkHideDiscarded.IsChecked = ($hiddenStatusesDefault -contains "廃棄")
+$ChkHideCompleted.IsChecked = ($hiddenStatusesDefault -contains "完了")
 $ChkTopmost.IsChecked = [bool]$AppSettings.topmostDefault
 $Form.Topmost = [bool]$ChkTopmost.IsChecked
 $BtnAddAppt.Add_Click({ Invoke-AddAppointmentForm })
@@ -2601,11 +2628,23 @@ function Build-GanttColumns {
 
 # 右クリックハンドラは廃止されました
 
+function Get-HiddenStatusesFromControls {
+    $statuses = @()
+
+    if ($ChkHideHold -and $ChkHideHold.IsChecked) { $statuses += "保留" }
+    if ($ChkHideDiscarded -and $ChkHideDiscarded.IsChecked) { $statuses += "廃棄" }
+    if ($ChkHideCompleted -and $ChkHideCompleted.IsChecked) { $statuses += "完了" }
+
+    return $statuses
+}
+
 function Refresh-UI {
     $data = Get-AllData
+    $hiddenStatuses = Get-HiddenStatusesFromControls
+    $syncTasks = @($data.parsed | Where-Object { Test-TaskStatusVisible -Task $_ -HiddenStatuses $hiddenStatuses })
     
     # === 同期シート・作業ログ ===
-    $GridSync.ItemsSource = [System.Collections.ArrayList]@($data.parsed)
+    $GridSync.ItemsSource = [System.Collections.ArrayList]@($syncTasks)
     
     $displayLogs = ConvertTo-DisplayWorkLogs -Logs $data.logs -Tasks $data.parsed
     $GridLogs.ItemsSource = [System.Collections.ArrayList]@($displayLogs)
@@ -2619,9 +2658,8 @@ function Refresh-UI {
     $suppressWeekendScheduleHighlight = ($ChkSuppressWeekendHighlight -and $ChkSuppressWeekendHighlight.IsChecked)
 
     Build-GanttColumns -startDate $startDate -days $days
-    $GridGantt.ItemsSource = ConvertTo-GanttDataView -Tasks $data.parsed -Logs $data.logs -StartDate $startDate -Days $days -SuppressWeekendScheduleHighlight $suppressWeekendScheduleHighlight
+    $GridGantt.ItemsSource = ConvertTo-GanttDataView -Tasks $data.parsed -Logs $data.logs -StartDate $startDate -Days $days -SuppressWeekendScheduleHighlight $suppressWeekendScheduleHighlight -HiddenStatuses $hiddenStatuses
 }
-
 function Invoke-OutlookSync {
     param(
         [string]$SuccessPrefix = "同期完了"
@@ -2765,6 +2803,12 @@ $GanttDatePicker.Add_SelectedDateChanged({ Refresh-UI })
 $GanttDaysCombo.Add_DropDownClosed({ Refresh-UI })
 $ChkSuppressWeekendHighlight.Add_Checked({ Refresh-UI })
 $ChkSuppressWeekendHighlight.Add_Unchecked({ Refresh-UI })
+$ChkHideHold.Add_Checked({ Refresh-UI })
+$ChkHideHold.Add_Unchecked({ Refresh-UI })
+$ChkHideDiscarded.Add_Checked({ Refresh-UI })
+$ChkHideDiscarded.Add_Unchecked({ Refresh-UI })
+$ChkHideCompleted.Add_Checked({ Refresh-UI })
+$ChkHideCompleted.Add_Unchecked({ Refresh-UI })
 $ChkTopmost.Add_Checked({ $Form.Topmost = $true })
 $ChkTopmost.Add_Unchecked({ $Form.Topmost = $false })
 

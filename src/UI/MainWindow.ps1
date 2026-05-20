@@ -149,6 +149,10 @@
                     <MenuItem Name="BtnResetView" Header="表示リセット"/>
                     <Separator/>
                     <MenuItem Name="ChkSuppressWeekendHighlight" Header="土日の予定色を抑制" IsCheckable="True"/>
+                    <Separator/>
+                    <MenuItem Name="ChkHideHold" Header="保留を非表示" IsCheckable="True"/>
+                    <MenuItem Name="ChkHideDiscarded" Header="廃棄を非表示" IsCheckable="True"/>
+                    <MenuItem Name="ChkHideCompleted" Header="完了を非表示" IsCheckable="True"/>
                     <MenuItem Name="ChkTopmost" Header="最前面" IsCheckable="True"/>
                 </MenuItem>
                 <MenuItem Header="ヘルプ">
@@ -375,6 +379,9 @@ function Initialize-MainWindowControls {
     $script:BtnResetView = $Window.FindName("BtnResetView")
     $script:ChkLogMode = $Window.FindName("ChkLogMode")
     $script:ChkSuppressWeekendHighlight = $Window.FindName("ChkSuppressWeekendHighlight")
+    $script:ChkHideHold = $Window.FindName("ChkHideHold")
+    $script:ChkHideDiscarded = $Window.FindName("ChkHideDiscarded")
+    $script:ChkHideCompleted = $Window.FindName("ChkHideCompleted")
     $script:ChkTopmost = $Window.FindName("ChkTopmost")
     $script:BtnHelp = $Window.FindName("BtnHelp")
     $script:GridSync = $Window.FindName("GridSync")
@@ -392,6 +399,10 @@ Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content ([string]$AppSet
 if ($GanttDaysCombo.SelectedIndex -lt 0) { Select-ComboBoxItemByContent -ComboBox $GanttDaysCombo -Content "35" }
 $ChkLogMode.IsChecked = [bool]$AppSettings.logInputModeDefault
 $ChkSuppressWeekendHighlight.IsChecked = [bool]$AppSettings.suppressWeekendScheduleHighlightDefault
+$hiddenStatusesDefault = @($AppSettings.hiddenStatusesDefault)
+$ChkHideHold.IsChecked = ($hiddenStatusesDefault -contains "保留")
+$ChkHideDiscarded.IsChecked = ($hiddenStatusesDefault -contains "廃棄")
+$ChkHideCompleted.IsChecked = ($hiddenStatusesDefault -contains "完了")
 $ChkTopmost.IsChecked = [bool]$AppSettings.topmostDefault
 $Form.Topmost = [bool]$ChkTopmost.IsChecked
 $BtnAddAppt.Add_Click({ Invoke-AddAppointmentForm })

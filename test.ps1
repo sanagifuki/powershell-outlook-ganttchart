@@ -65,6 +65,7 @@ $settings = Get-DefaultAppSettings
 Assert-Equal $settings.ganttDefaultDays 35 'Default gantt days setting failed.'
 Assert-Equal $settings.addAppointmentTypeDefaultSymbol '◆' 'Default appointment type setting failed.'
 Assert-Equal $settings.topmostDefault $false 'Default topmost setting failed.'
+Assert-Equal @($settings.hiddenStatusesDefault).Count 0 'Default hidden status setting failed.'
 Assert-Equal $settings.rememberWindowPlacement $true 'Default window placement setting failed.'
 Assert-Equal $settings.windowWidth 769 'Default window width setting failed.'
 Assert-Equal $settings.windowMinWidth 825 'Default window minimum width setting failed.'
@@ -93,6 +94,14 @@ $incompleteSchedules = @(Get-IncompleteSchedules -Schedules @(
     ))
 Assert-Equal $incompleteSchedules.Count 1 'Incomplete schedule filtering failed.'
 Assert-Equal $incompleteSchedules[0].タイトル 'todo' 'Incomplete schedule item failed.'
+$visibleStatusTasks = @(Select-GanttVisibleTasks -Tasks @(
+        [PSCustomObject]@{ uid = '1'; ステータス = '保留'; 終了日 = '2026/05/15' },
+        [PSCustomObject]@{ uid = '2'; ステータス = '廃棄'; 終了日 = '2026/05/15' },
+        [PSCustomObject]@{ uid = '3'; ステータス = '未着手'; 終了日 = '2026/05/15' }
+    ) -BaseDate ([datetime]'2026-05-16') -HiddenStatuses @('保留', '廃棄'))
+Assert-Equal $visibleStatusTasks.Count 1 'Hidden status filtering failed.'
+Assert-Equal $visibleStatusTasks[0].uid '3' 'Hidden status visible item failed.'
+Assert-True (-not (Test-TaskStatusVisible -Task ([PSCustomObject]@{ ステータス = '保留' }) -HiddenStatuses @('保留'))) 'Hidden status predicate failed.'
 
 $newLog = New-WorkLog -Uid '1' -Date '2026/05/16' -Content '作業' -Time '15'
 Assert-Equal $newLog.uid '1' 'New work log uid failed.'

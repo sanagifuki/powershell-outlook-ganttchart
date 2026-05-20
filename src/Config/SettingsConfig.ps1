@@ -8,6 +8,7 @@ function Get-DefaultAppSettings {
         logInputModeDefault = $true
         suppressWeekendScheduleHighlightDefault = $false
         topmostDefault = $false
+        hiddenStatusesDefault = @()
         addAppointmentPrivateDefault = $true
         addAppointmentShowAsFreeDefault = $true
         addAppointmentTypeDefaultSymbol = "◆"

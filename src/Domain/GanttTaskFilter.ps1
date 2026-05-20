@@ -7,12 +7,26 @@ function Get-RecentClosedTaskUids {
     return @($completedUids + $discardedUids)
 }
 
+function Test-TaskStatusVisible {
+    param(
+        $Task,
+        [array]$HiddenStatuses = @()
+    )
+
+    return ($HiddenStatuses -notcontains $Task.ステータス)
+}
+
 function Test-GanttTaskVisible {
     param(
         $Task,
         [array]$RecentClosedTaskUids,
-        [string]$UnstartedEndLimitText
+        [string]$UnstartedEndLimitText,
+        [array]$HiddenStatuses = @()
     )
+
+    if (-not (Test-TaskStatusVisible -Task $Task -HiddenStatuses $HiddenStatuses)) {
+        return $false
+    }
 
     if (($Task.ステータス -eq "完了" -or $Task.ステータス -eq "廃棄") -and $RecentClosedTaskUids -notcontains $Task.uid) {
         return $false
@@ -28,16 +42,16 @@ function Test-GanttTaskVisible {
 function Select-GanttVisibleTasks {
     param(
         [array]$Tasks,
-        [datetime]$BaseDate = (Get-Date)
+        [datetime]$BaseDate = (Get-Date),
+        [array]$HiddenStatuses = @()
     )
 
     $recentClosedTaskUids = Get-RecentClosedTaskUids -Tasks $Tasks
     $unstartedEndLimitText = $BaseDate.AddDays(44).ToString("yyyy/MM/dd")
 
     foreach ($task in $Tasks) {
-        if (Test-GanttTaskVisible -Task $task -RecentClosedTaskUids $recentClosedTaskUids -UnstartedEndLimitText $unstartedEndLimitText) {
+        if (Test-GanttTaskVisible -Task $task -RecentClosedTaskUids $recentClosedTaskUids -UnstartedEndLimitText $unstartedEndLimitText -HiddenStatuses $HiddenStatuses) {
             $task
         }
     }
 }
-
