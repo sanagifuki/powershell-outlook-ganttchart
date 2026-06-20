@@ -3,7 +3,8 @@ function New-WorkLog {
         [string]$Uid,
         [string]$Date,
         [string]$Content,
-        [string]$Time
+        [string]$Time,
+        [string]$Title = ""
     )
 
     [PSCustomObject]@{
@@ -11,6 +12,7 @@ function New-WorkLog {
         date = $Date
         content = $Content
         time = $Time
+        title = $Title
     }
 }
 
@@ -49,4 +51,3 @@ function Upsert-WorkLog {
 
     return @($Logs + $NewLog)
 }
-

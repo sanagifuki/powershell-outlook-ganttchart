@@ -141,9 +141,6 @@
                     <MenuItem Name="BtnSync" Header="Outlook同期"/>
                     <Separator/>
                     <MenuItem Name="BtnAddAppt" Header="予定追加"/>
-                    <MenuItem Name="BtnEditAppt" Header="予定編集"/>
-                    <Separator/>
-                    <MenuItem Name="BtnComplete" Header="ステータス切替"/>
                 </MenuItem>
                 <MenuItem Header="表示">
                     <MenuItem Name="BtnResetView" Header="表示リセット"/>
@@ -153,6 +150,21 @@
                     <MenuItem Name="ChkHideHold" Header="保留を非表示" IsCheckable="True"/>
                     <MenuItem Name="ChkHideDiscarded" Header="廃棄を非表示" IsCheckable="True"/>
                     <MenuItem Name="ChkHideCompleted" Header="完了を非表示" IsCheckable="True"/>
+                    <Separator/>
+                    <MenuItem Header="完了の表示数">
+                        <MenuItem Name="CompletedCount0" Header="0件" Tag="0" IsCheckable="True"/>
+                        <MenuItem Name="CompletedCount5" Header="5件" Tag="5" IsCheckable="True"/>
+                        <MenuItem Name="CompletedCount10" Header="10件" Tag="10" IsCheckable="True"/>
+                        <MenuItem Name="CompletedCount15" Header="15件" Tag="15" IsCheckable="True"/>
+                        <MenuItem Name="CompletedCount30" Header="30件" Tag="30" IsCheckable="True"/>
+                    </MenuItem>
+                    <MenuItem Header="廃棄の表示数">
+                        <MenuItem Name="DiscardedCount0" Header="0件" Tag="0" IsCheckable="True"/>
+                        <MenuItem Name="DiscardedCount5" Header="5件" Tag="5" IsCheckable="True"/>
+                        <MenuItem Name="DiscardedCount10" Header="10件" Tag="10" IsCheckable="True"/>
+                        <MenuItem Name="DiscardedCount15" Header="15件" Tag="15" IsCheckable="True"/>
+                        <MenuItem Name="DiscardedCount30" Header="30件" Tag="30" IsCheckable="True"/>
+                    </MenuItem>
                     <MenuItem Name="ChkTopmost" Header="最前面" IsCheckable="True"/>
                 </MenuItem>
                 <MenuItem Header="ヘルプ">
@@ -371,9 +383,7 @@ function Initialize-MainWindowControls {
     param($Window)
 
     $script:BtnAddAppt = $Window.FindName("BtnAddAppt")
-    $script:BtnEditAppt = $Window.FindName("BtnEditAppt")
     $script:BtnSync = $Window.FindName("BtnSync")
-    $script:BtnComplete = $Window.FindName("BtnComplete")
     $script:GanttDatePicker = $Window.FindName("GanttDatePicker")
     $script:GanttDaysCombo = $Window.FindName("GanttDaysCombo")
     $script:BtnResetView = $Window.FindName("BtnResetView")
@@ -387,6 +397,9 @@ function Initialize-MainWindowControls {
     $script:GridSync = $Window.FindName("GridSync")
     $script:GridGantt = $Window.FindName("GridGantt")
     $script:GridLogs = $Window.FindName("GridLogs")
+    $script:MainTab = $Window.FindName("MainTab")
+    $script:CompletedCountItems = @(0, 5, 10, 15, 30 | ForEach-Object { $Window.FindName("CompletedCount$_") })
+    $script:DiscardedCountItems = @(0, 5, 10, 15, 30 | ForEach-Object { $Window.FindName("DiscardedCount$_") })
     $script:StatusMsg = $Window.FindName("StatusMsg")
 }
 

@@ -9,6 +9,8 @@ function Get-DefaultAppSettings {
         suppressWeekendScheduleHighlightDefault = $false
         topmostDefault = $false
         hiddenStatusesDefault = @()
+        completedScheduleDisplayCount = 5
+        discardedScheduleDisplayCount = 5
         addAppointmentPrivateDefault = $true
         addAppointmentShowAsFreeDefault = $true
         addAppointmentTypeDefaultSymbol = "◆"
@@ -174,4 +176,15 @@ function Select-ComboBoxItemByTag {
             return
         }
     }
+}
+
+function Set-AppSetting {
+    param(
+        [string]$Name,
+        $Value
+    )
+
+    Add-MissingSetting -Settings $script:AppSettings -Name $Name -Value $Value
+    $script:AppSettings.$Name = $Value
+    Save-AppSettings -Settings $script:AppSettings
 }

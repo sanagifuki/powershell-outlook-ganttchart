@@ -1,5 +1,8 @@
 function Invoke-StatusSchedulePicker {
-    param([array]$Tasks)
+    param(
+        [array]$Tasks,
+        $InitialTask
+    )
 
     $items = Get-CompletionToggleSchedules -Schedules $Tasks
     if ($items.Count -eq 0) {
@@ -10,7 +13,7 @@ function Invoke-StatusSchedulePicker {
     [xml]$xaml = @"
     <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            Title="ステータス切替" Height="220" Width="520"
+            Title="ステータス切替" Height="300" Width="620"
             Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
             TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
         <Grid Margin="14">
@@ -22,7 +25,14 @@ function Invoke-StatusSchedulePicker {
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <TextBlock Text="ステータスを変更するスケジュール" FontWeight="SemiBold" Margin="0,0,0,6"/>
-            <ComboBox Name="ComboSchedule" Grid.Row="1" Height="28" DisplayMemberPath="DisplayText"/>
+            <DataGrid Name="ComboSchedule" Grid.Row="1" Height="100" AutoGenerateColumns="False" IsReadOnly="True"
+                      HeadersVisibility="Column" SelectionMode="Single" SelectionUnit="FullRow">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="開始日" Binding="{Binding 開始日}" Width="90"/>
+                    <DataGridTextColumn Header="状態" Binding="{Binding ステータス}" Width="75"/>
+                    <DataGridTextColumn Header="タイトル" Binding="{Binding タイトル}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
             <StackPanel Grid.Row="2" Margin="0,8,0,0">
                 <TextBlock Text="変更後ステータス" Foreground="#666666" Margin="0,0,0,2"/>
                 <ComboBox Name="ComboStatus" Height="28">
@@ -56,7 +66,7 @@ function Invoke-StatusSchedulePicker {
             $_
         })
     $combo.ItemsSource = $comboItems
-    $combo.SelectedIndex = 0
+    $combo.SelectedItem = if ($InitialTask) { $comboItems | Where-Object uid -eq $InitialTask.uid | Select-Object -First 1 } else { $comboItems | Select-Object -First 1 }
 
     $selectStatus = {
         if ($combo.SelectedItem) {
@@ -128,7 +138,7 @@ function Invoke-ScheduleEditPicker {
     [xml]$xaml = @"
     <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            Title="スケジュール編集" Height="190" Width="520"
+            Title="スケジュール編集" Height="330" Width="620"
             Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
             TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
         <Grid Margin="14">
@@ -139,7 +149,15 @@ function Invoke-ScheduleEditPicker {
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <TextBlock Text="編集するスケジュール" FontWeight="SemiBold" Margin="0,0,0,6"/>
-            <ComboBox Name="ComboSchedule" Grid.Row="1" Height="28" DisplayMemberPath="DisplayText"/>
+            <DataGrid Name="ComboSchedule" Grid.Row="1" Height="190" AutoGenerateColumns="False" IsReadOnly="True"
+                      HeadersVisibility="Column" SelectionMode="Single" SelectionUnit="FullRow">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="開始日" Binding="{Binding 開始日}" Width="90"/>
+                    <DataGridTextColumn Header="分類" Binding="{Binding 分類}" Width="90"/>
+                    <DataGridTextColumn Header="タイトル" Binding="{Binding タイトル}" Width="*"/>
+                    <DataGridTextColumn Header="状態" Binding="{Binding ステータス}" Width="75"/>
+                </DataGrid.Columns>
+            </DataGrid>
             <TextBlock Name="TxtMemo" Grid.Row="2" TextWrapping="Wrap" Foreground="#666666" Margin="0,8,0,0"/>
             <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                 <Button Name="BtnCancel" Content="キャンセル" Width="90" Height="28" Margin="0,0,8,0"/>
@@ -158,12 +176,12 @@ function Invoke-ScheduleEditPicker {
     $btnOk = $window.FindName("BtnOk")
     $btnCancel = $window.FindName("BtnCancel")
 
-    $comboItems = @($items | ForEach-Object {
+    $comboItems = @($items | Sort-Object 開始日, タイトル | ForEach-Object {
             $_ | Add-Member -MemberType NoteProperty -Name DisplayText -Value "$($_.開始日) $($_.タイトル)" -Force
             $_
         })
     $combo.ItemsSource = $comboItems
-    $combo.SelectedIndex = 0
+    $combo.SelectedItem = $comboItems | Select-Object -First 1
 
     $combo.Add_SelectionChanged({
             if ($combo.SelectedItem) {

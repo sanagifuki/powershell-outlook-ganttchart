@@ -29,6 +29,8 @@ function ConvertFrom-OutlookAppointment {
         endTime = if ($Item.AllDayEvent) { "" } else { $Item.End.ToString("HH:mm") }
         memo = Format-Memo $Item.Body
         categories = $Item.Categories
+        isPrivate = ($Item.Sensitivity -eq 2)
+        showAsFree = ($Item.BusyStatus -eq 0)
     }
 }
 

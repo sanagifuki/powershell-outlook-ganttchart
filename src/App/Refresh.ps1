@@ -28,5 +28,5 @@ function Refresh-UI {
     $suppressWeekendScheduleHighlight = ($ChkSuppressWeekendHighlight -and $ChkSuppressWeekendHighlight.IsChecked)
 
     Build-GanttColumns -startDate $startDate -days $days
-    $GridGantt.ItemsSource = ConvertTo-GanttDataView -Tasks $data.parsed -Logs $data.logs -StartDate $startDate -Days $days -SuppressWeekendScheduleHighlight $suppressWeekendScheduleHighlight -HiddenStatuses $hiddenStatuses
+    $GridGantt.ItemsSource = ConvertTo-GanttDataView -Tasks $data.parsed -Logs $data.logs -StartDate $startDate -Days $days -SuppressWeekendScheduleHighlight $suppressWeekendScheduleHighlight -HiddenStatuses $hiddenStatuses -CompletedCount ([int]$AppSettings.completedScheduleDisplayCount) -DiscardedCount ([int]$AppSettings.discardedScheduleDisplayCount)
 }

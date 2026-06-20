@@ -55,16 +55,22 @@ $schedule = ConvertTo-ScheduleItem -Task ([PSCustomObject]@{
     endTime = ''
     memo = '<p>* test</p>'
     categories = ''
+    isPrivate = $true
+    showAsFree = $false
 })
 Assert-Equal $schedule.ステータス '表示' 'Schedule status parse failed.'
 Assert-Equal $schedule.期限タイプ '参照用' 'Schedule type parse failed.'
 Assert-Equal $schedule.分類 '調査' 'Schedule category parse failed.'
 Assert-True (-not [string]::IsNullOrWhiteSpace($schedule.分類背景)) 'Schedule category background failed.'
+Assert-Equal $schedule.非公開 $true 'Schedule privacy parse failed.'
+Assert-Equal $schedule.空き時間表示 $false 'Schedule free/busy parse failed.'
 Assert-True ((Get-CategoryNames).Count -gt 0) 'Default categories should be loaded.'
 $settings = Get-DefaultAppSettings
 Assert-Equal $settings.ganttDefaultDays 35 'Default gantt days setting failed.'
 Assert-Equal $settings.addAppointmentTypeDefaultSymbol '◆' 'Default appointment type setting failed.'
 Assert-Equal $settings.topmostDefault $false 'Default topmost setting failed.'
+Assert-Equal $settings.completedScheduleDisplayCount 5 'Default completed display count failed.'
+Assert-Equal $settings.discardedScheduleDisplayCount 5 'Default discarded display count failed.'
 Assert-Equal @($settings.hiddenStatusesDefault).Count 0 'Default hidden status setting failed.'
 Assert-Equal $settings.rememberWindowPlacement $true 'Default window placement setting failed.'
 Assert-Equal $settings.windowWidth 769 'Default window width setting failed.'
@@ -103,8 +109,9 @@ Assert-Equal $visibleStatusTasks.Count 1 'Hidden status filtering failed.'
 Assert-Equal $visibleStatusTasks[0].uid '3' 'Hidden status visible item failed.'
 Assert-True (-not (Test-TaskStatusVisible -Task ([PSCustomObject]@{ ステータス = '保留' }) -HiddenStatuses @('保留'))) 'Hidden status predicate failed.'
 
-$newLog = New-WorkLog -Uid '1' -Date '2026/05/16' -Content '作業' -Time '15'
+$newLog = New-WorkLog -Uid '1' -Date '2026/05/16' -Content '作業' -Time '15' -Title '予定A'
 Assert-Equal $newLog.uid '1' 'New work log uid failed.'
+Assert-Equal $newLog.title '予定A' 'New work log title snapshot failed.'
 $updatedLogs = @(Upsert-WorkLog -Logs @() -NewLog $newLog -EditLog $null)
 Assert-Equal $updatedLogs.Count 1 'Work log insert failed.'
 $replacementLog = New-WorkLog -Uid '1' -Date '2026/05/16' -Content '更新' -Time '20'
@@ -123,6 +130,23 @@ $displayLogs = @(ConvertTo-DisplayWorkLogs -Logs @([PSCustomObject]@{
 }))
 Assert-Equal $displayLogs[0].title '予定A' 'Work log title lookup failed.'
 Assert-Equal $displayLogs[0].displayTime '15分' 'Work log time format failed.'
+$orphanDisplayLogs = @(ConvertTo-DisplayWorkLogs -Logs @([PSCustomObject]@{
+    uid = 'missing'
+    date = '2026/05/16'
+    time = '15'
+    content = '作業'
+    title = '当時の予定名'
+}) -Tasks @())
+Assert-Equal $orphanDisplayLogs[0].title '当時の予定名' 'Orphan work log title fallback failed.'
+
+$closedTasks = @(
+    [PSCustomObject]@{ uid = 'done1'; ステータス = '完了'; 開始日 = '2025/01/01'; 終了日 = '2025/01/01' },
+    [PSCustomObject]@{ uid = 'done2'; ステータス = '完了'; 開始日 = '2026/01/01'; 終了日 = '2026/01/01' },
+    [PSCustomObject]@{ uid = 'done3'; ステータス = '完了'; 開始日 = '2026/05/01'; 終了日 = '2026/05/01' }
+)
+$recentClosed = @(Get-RecentClosedTaskUids -Tasks $closedTasks -CompletedCount 1 -DiscardedCount 0)
+Assert-Equal $recentClosed.Count 1 'Completed display count filtering failed.'
+Assert-Equal $recentClosed[0] 'done3' 'Newest completed schedule selection failed.'
 
 Assert-Equal (Get-GanttDateCellBackground -Date ([datetime]'2026-05-16') -TodayText '2026/05/16') $CLR_GANTT_TODAY_BG 'Today cell background failed.'
 $weekendBg = Get-GanttDateCellBackground -Date ([datetime]'2026-05-17') -TodayText '2026/05/16'
@@ -180,8 +204,12 @@ $appointment = ConvertFrom-OutlookAppointment -Item ([PSCustomObject]@{
     AllDayEvent = $false
     Body = '<p>memo</p>'
     Categories = '完了'
+    Sensitivity = 2
+    BusyStatus = 0
 })
 Assert-Equal $appointment.uid 'abc' 'Outlook appointment uid conversion failed.'
 Assert-Equal $appointment.startTime '09:00' 'Outlook appointment start time conversion failed.'
+Assert-Equal $appointment.isPrivate $true 'Outlook appointment privacy conversion failed.'
+Assert-Equal $appointment.showAsFree $true 'Outlook appointment free/busy conversion failed.'
 
 Write-Host 'All tests passed.'

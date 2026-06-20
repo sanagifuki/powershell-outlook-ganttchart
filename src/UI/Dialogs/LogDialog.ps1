@@ -75,7 +75,7 @@ function Invoke-LogForm {
             [array]$logs = Read-JsonArray -Path $LogsFile
             $saveDate = if ($dpDate.SelectedDate) { $dpDate.SelectedDate.ToString("yyyy/MM/dd") } else { $dpDate.Text }
         
-            $newLog = New-WorkLog -Uid $task.uid -Date $saveDate -Content $txtContent.Text -Time $txtTime.Text
+            $newLog = New-WorkLog -Uid $task.uid -Date $saveDate -Content $txtContent.Text -Time $txtTime.Text -Title $task.タイトル
             $logs = Upsert-WorkLog -Logs $logs -NewLog $newLog -EditLog $editLog
             Write-JsonData -Path $LogsFile -Data $logs
         

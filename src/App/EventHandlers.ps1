@@ -104,8 +104,91 @@ function Get-DisplayedGanttTasks {
     return $tasks
 }
 
+function Get-SelectedSchedule {
+    if ($MainTab.SelectedIndex -eq 0 -and $GridSync.CurrentItem) {
+        return $GridSync.CurrentItem
+    }
+    if ($MainTab.SelectedIndex -eq 2 -and $GridGantt.SelectedItem) {
+        return $GridGantt.SelectedItem["OriginalTask"]
+    }
+    return $null
+}
+
+function Select-DataGridRowUnderMouse {
+    param(
+        $Grid,
+        $OriginalSource
+    )
+
+    $element = $OriginalSource
+    while ($element -and $element -isnot [System.Windows.Controls.DataGridCell]) {
+        $element = [System.Windows.Media.VisualTreeHelper]::GetParent($element)
+    }
+
+    if ($element -is [System.Windows.Controls.DataGridCell]) {
+        $Grid.CurrentCell = New-Object System.Windows.Controls.DataGridCellInfo($element)
+        $element.Focus()
+        return $true
+    }
+
+    return $false
+}
+
+function Initialize-ScheduleContextMenu {
+    $contextMenu = New-Object System.Windows.Controls.ContextMenu
+    $editItem = New-Object System.Windows.Controls.MenuItem
+    $editItem.Header = "予定編集"
+    $statusItem = New-Object System.Windows.Controls.MenuItem
+    $statusItem.Header = "ステータス切替"
+
+    $editItem.Add_Click({
+        try {
+            Edit-SelectedSchedule
+        }
+        catch {
+            Show-Toast "編集処理に失敗: $($_.Exception.Message)"
+        }
+    })
+    foreach ($status in @("未着手", "完了", "保留", "廃棄")) {
+        $statusChoice = New-Object System.Windows.Controls.MenuItem
+        $statusChoice.Header = $status
+        $statusChoice.Tag = $status
+        $statusChoice.Add_Click({
+            try {
+                Set-SelectedScheduleStatus -Status ([string]$this.Tag)
+            }
+            catch {
+                Show-Toast "ステータス切替に失敗: $($_.Exception.Message)"
+            }
+        })
+        [void]$statusItem.Items.Add($statusChoice)
+    }
+
+    [void]$contextMenu.Items.Add($editItem)
+    [void]$contextMenu.Items.Add($statusItem)
+    $GridSync.ContextMenu = $contextMenu
+}
+
+function Set-SelectedScheduleStatus {
+    param([string]$Status)
+
+    $task = Get-SelectedSchedule
+    if (-not $task) {
+        Show-Toast "スケジュールを選択してください"
+        return
+    }
+
+    Set-OutlookAppointmentStatus -EntryId $task.uid -Status $Status
+    $schedules = Read-JsonArray -Path $TasksFile
+    $schedules = Set-CachedScheduleStatus -Schedules $schedules -Uid $task.uid -Status $Status
+    Write-JsonData -Path $TasksFile -Data $schedules
+    Show-Toast "ステータスを変更しました: $($task.タイトル) => $Status"
+    Invoke-OutlookSync -SuccessPrefix "ステータス切替後の同期完了"
+}
+
 function Change-SelectedScheduleStatus {
-    $result = Invoke-StatusSchedulePicker -Tasks (Get-DisplayedGanttTasks)
+    $selectedTask = Get-SelectedSchedule
+    $result = Invoke-StatusSchedulePicker -Tasks (Get-DisplayedGanttTasks) -InitialTask $selectedTask
     if (-not $result) {
         return
     }
@@ -125,10 +208,34 @@ function Complete-SelectedSchedule {
 }
 
 function Edit-SelectedSchedule {
-    $task = Invoke-ScheduleEditPicker -Tasks (Get-DisplayedGanttTasks)
+    $task = Get-SelectedSchedule
+    if (-not $task) {
+        $task = Invoke-ScheduleEditPicker -Tasks (Get-DisplayedGanttTasks)
+    }
     if (-not $task) {
         return
     }
 
     Invoke-EditAppointmentForm -Task $task
+}
+
+function Set-ClosedScheduleDisplayCount {
+    param(
+        [ValidateSet("完了", "廃棄")][string]$Status,
+        [int]$Count
+    )
+
+    $property = if ($Status -eq "完了") { "completedScheduleDisplayCount" } else { "discardedScheduleDisplayCount" }
+    Set-AppSetting -Name $property -Value $Count
+    Update-ClosedScheduleCountChecks
+    Refresh-UI
+}
+
+function Update-ClosedScheduleCountChecks {
+    foreach ($item in $CompletedCountItems) {
+        $item.IsChecked = ([int]$item.Tag -eq [int]$AppSettings.completedScheduleDisplayCount)
+    }
+    foreach ($item in $DiscardedCountItems) {
+        $item.IsChecked = ([int]$item.Tag -eq [int]$AppSettings.discardedScheduleDisplayCount)
+    }
 }

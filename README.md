@@ -12,11 +12,12 @@ Outlook の予定を取得し、作業ログと合わせてガントチャート
 ## 主な機能
 
 - Outlook予定の同期
-- 予定追加、予定編集
-- ステータス切替: `未着手` / `完了` / `保留` / `廃棄`
+- 予定追加、カレンダー同期画面からの予定編集
+- 右クリックによるステータス切替: `未着手` / `完了` / `保留` / `廃棄`
 - 作業ログの追加、編集、日付セルからの入力
 - カレンダー同期、作業ログ、ガントチャートの3タブ表示
 - 保留/廃棄/完了の表示・非表示切替
+- 完了/廃棄スケジュールの表示件数切替
 - 土日の予定色抑制、最前面表示、ウィンドウ位置復元
 - `settings.json` / `categories.json` による設定変更
 - `build.ps1` による持ち出し用単一ファイル生成
@@ -50,13 +51,17 @@ C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypas
 `予定` メニュー:
 - `Outlook同期`: Outlook予定を取得して画面を更新する。
 - `予定追加`: Outlookに新しい予定を追加する。追加後は自動で同期する。
-- `予定編集`: 現在表示中の予定から選んで編集する。編集後は自動で同期する。
-- `ステータス切替`: 現在表示中の予定から選んで `未着手` / `完了` / `保留` / `廃棄` を切り替える。変更後は自動で同期する。
+
+カレンダー同期タブ:
+- 予定のセルを右クリックし、`予定編集` または `ステータス切替` を選ぶ。
+- ステータスは `未着手` / `完了` / `保留` / `廃棄` から直接選択できる。
+- 変更後は自動でOutlook同期を実行する。
 
 `表示` メニュー:
 - `表示リセット`: 列幅やスクロール位置を初期状態に戻す。
 - `土日の予定色を抑制`: 土日列にある予定セルのオレンジ色だけを抑制する。
 - `保留を非表示` / `廃棄を非表示` / `完了を非表示`: 対象ステータスを画面上から非表示にする。
+- `完了の表示数` / `廃棄の表示数`: ガントチャートに残す完了・廃棄予定の件数を `0 / 5 / 10 / 15 / 30件` から選ぶ。
 - `最前面`: ウィンドウを最前面に固定する。
 
 ダブルクリック操作:
@@ -77,7 +82,7 @@ C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypas
 ガントチャートでは、表示を軽くするために次の自動フィルタを使う。
 
 - `未着手` かつ終了日が `今日 + 44日` より先の予定は非表示。
-- `完了` / `廃棄` はそれぞれ直近15件だけ表示。
+- `完了` / `廃棄` は、表示メニューで設定した直近件数だけ表示。
 - 表示メニューで非表示にしたステータスは、自動フィルタより前に除外。
 
 カレンダー同期タブでは、表示メニューで非表示にしたステータスだけを除外する。
@@ -109,6 +114,8 @@ C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypas
   "suppressWeekendScheduleHighlightDefault": false,
   "topmostDefault": false,
   "hiddenStatusesDefault": [],
+  "completedScheduleDisplayCount": 5,
+  "discardedScheduleDisplayCount": 5,
   "addAppointmentPrivateDefault": true,
   "addAppointmentShowAsFreeDefault": true,
   "addAppointmentTypeDefaultSymbol": "◆",
@@ -148,7 +155,7 @@ C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypas
 同じフォルダにある以下の JSON を使う。
 
 - `schedules.json`: Outlook同期データのキャッシュ。
-- `logs.json`: 作業ログ。
+- `logs.json`: 作業ログ。予定が同期対象外になった場合に備え、登録時点の予定名も保持する。
 - `settings.json`: 画面や予定追加の設定。
 - `categories.json`: 分類設定。
 

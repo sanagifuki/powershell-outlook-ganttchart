@@ -68,5 +68,7 @@ function ConvertTo-ScheduleItem {
         開始時間 = $Task.startTime
         終了時間 = $Task.endTime
         メモ = Format-Memo $Task.memo
+        非公開 = if ($null -ne $Task.PSObject.Properties["isPrivate"]) { [bool]$Task.isPrivate } else { $null }
+        空き時間表示 = if ($null -ne $Task.PSObject.Properties["showAsFree"]) { [bool]$Task.showAsFree } else { $null }
     }
 }

@@ -1,8 +1,12 @@
 function Get-RecentClosedTaskUids {
-    param([array]$Tasks)
+    param(
+        [array]$Tasks,
+        [int]$CompletedCount = 5,
+        [int]$DiscardedCount = 5
+    )
 
-    $completedUids = @($Tasks | Where-Object { $_.ステータス -eq "完了" } | Select-Object -Last 15 | ForEach-Object { $_.uid })
-    $discardedUids = @($Tasks | Where-Object { $_.ステータス -eq "廃棄" } | Select-Object -Last 15 | ForEach-Object { $_.uid })
+    $completedUids = @($Tasks | Where-Object { $_.ステータス -eq "完了" } | Sort-Object 終了日, 開始日 | Select-Object -Last $CompletedCount | ForEach-Object { $_.uid })
+    $discardedUids = @($Tasks | Where-Object { $_.ステータス -eq "廃棄" } | Sort-Object 終了日, 開始日 | Select-Object -Last $DiscardedCount | ForEach-Object { $_.uid })
 
     return @($completedUids + $discardedUids)
 }
@@ -43,10 +47,12 @@ function Select-GanttVisibleTasks {
     param(
         [array]$Tasks,
         [datetime]$BaseDate = (Get-Date),
-        [array]$HiddenStatuses = @()
+        [array]$HiddenStatuses = @(),
+        [int]$CompletedCount = 5,
+        [int]$DiscardedCount = 5
     )
 
-    $recentClosedTaskUids = Get-RecentClosedTaskUids -Tasks $Tasks
+    $recentClosedTaskUids = Get-RecentClosedTaskUids -Tasks $Tasks -CompletedCount $CompletedCount -DiscardedCount $DiscardedCount
     $unstartedEndLimitText = $BaseDate.AddDays(44).ToString("yyyy/MM/dd")
 
     foreach ($task in $Tasks) {

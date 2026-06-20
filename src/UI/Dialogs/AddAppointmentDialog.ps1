@@ -246,12 +246,11 @@ function Invoke-AppointmentForm {
         if (-not [string]::IsNullOrWhiteSpace($ExistingTask.開始時間)) { $timeStart.Text = $ExistingTask.開始時間 }
         if (-not [string]::IsNullOrWhiteSpace($ExistingTask.終了時間)) { $timeEnd.Text = $ExistingTask.終了時間 }
         $txtMemo.Text = [string]$ExistingTask.メモ
-        try {
-            $outlookOptions = Get-OutlookAppointmentOptions -EntryId $ExistingTask.uid
-            $chkPrivate.IsChecked = [bool]$outlookOptions.IsPrivate
-            $chkShowAsFree.IsChecked = [bool]$outlookOptions.ShowAsFree
+        if ($null -ne $ExistingTask.非公開 -and $null -ne $ExistingTask.空き時間表示) {
+            $chkPrivate.IsChecked = [bool]$ExistingTask.非公開
+            $chkShowAsFree.IsChecked = [bool]$ExistingTask.空き時間表示
         }
-        catch {
+        else {
             $chkPrivate.IsChecked = [bool]$settings.addAppointmentPrivateDefault
             $chkShowAsFree.IsChecked = [bool]$settings.addAppointmentShowAsFreeDefault
         }
