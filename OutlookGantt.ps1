@@ -1,6 +1,6 @@
 ﻿# Auto-generated from src/*.ps1 by build.ps1.
 # Edit files under src/ instead of this generated file.
-# Source commit: ef865ef
+# Source commit: 60e0f35
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Drawing
@@ -203,6 +203,8 @@ function Get-DefaultAppSettings {
         suppressWeekendScheduleHighlightDefault = $false
         topmostDefault = $false
         hiddenStatusesDefault = @()
+        completedScheduleDisplayCount = 5
+        discardedScheduleDisplayCount = 5
         addAppointmentPrivateDefault = $true
         addAppointmentShowAsFreeDefault = $true
         addAppointmentTypeDefaultSymbol = "◆"
@@ -369,6 +371,17 @@ function Select-ComboBoxItemByTag {
         }
     }
 }
+
+function Set-AppSetting {
+    param(
+        [string]$Name,
+        $Value
+    )
+
+    Add-MissingSetting -Settings $script:AppSettings -Name $Name -Value $Value
+    $script:AppSettings.$Name = $Value
+    Save-AppSettings -Settings $script:AppSettings
+}
 function Get-HelpText {
     @"
 【ガントチャート使用時の留意事項・詳細リファレンス】
@@ -380,11 +393,12 @@ function Get-HelpText {
 ■ 基本操作
 ・予定 > Outlook同期：Outlook予定を取得し、画面を更新します。
 ・予定 > 予定追加：Outlookに新しい予定を追加します。追加後は自動でOutlook同期を実行します。
-・予定 > 予定編集：現在表示中のスケジュールから選び、タイトル、分類、日付、時刻、メモなどを編集します。編集後は自動でOutlook同期を実行します。
-・予定 > ステータス切替：現在表示中のスケジュールから選び、未着手/完了/保留/廃棄へ切り替えます。変更後は自動でOutlook同期を実行します。
+・カレンダー同期シート：予定のセルを右クリックすると、その予定の編集またはステータス切替ができます。
+・ステータス切替：右クリックメニューから、未着手/完了/保留/廃棄を直接選択します。
 ・表示 > 表示リセット：列幅やスクロール位置を初期状態に戻します。
 ・表示 > 土日の予定色を抑制：土日列にある予定セルのオレンジ色だけを抑制します。
 ・表示 > 保留/廃棄/完了を非表示：対象ステータスの予定を画面上から非表示にします。
+・表示 > 完了/廃棄の表示数：ガントチャートに残す完了・廃棄予定の件数を選択します。
 ・表示 > 最前面：ウィンドウを最前面に固定します。
 
 ■ Outlook同期の手順・要件
@@ -401,14 +415,14 @@ function Get-HelpText {
 ・タイトル記号：タイトル内に「★」=参照用、「✕」=絶対期限、「◆」=推奨期限、「◇」=目安期限、「▶」=予定日として扱われます。
 ・絶対期限の仕様: 終了日の次の日が絶対期限日として扱う。（当日は作業できない前提）
 ・メモの整形：OutlookのHTML形式メモは、タグを除去してプレーンテキストとして表示します。
+・非公開/空き時間設定：同期時に取得してキャッシュし、予定編集画面で利用します。
 
 ■ フィルタリングの仕様
 ・表示メニューの非表示設定：保留/廃棄/完了を明示的に非表示にできます。
 ・カレンダー同期シート：表示メニューで選んだステータスだけを非表示にします。
 ・ガントチャートシート：表示メニューで選んだステータスを非表示にしたうえで、以下の自動フィルタを適用します。
 ・未着手フィルタ：ステータスが「未着手」かつ期限（終了日）が【今日 + 44日】より先の予定は非表示になります。
-・完了/廃棄表示：それぞれ最新の【直近15件】のみが表示されます。
-・ステータス切替/予定編集の対象：現在ガントチャートに表示されているスケジュールです。
+・完了/廃棄表示：表示メニューで、それぞれ直近何件を表示するか選択できます。
 
 ■ 記号とカラーのルール
 ・塗りつぶし（▶■▲）：その日に「作業ログ」が存在することを示します。
@@ -427,6 +441,7 @@ function Get-HelpText {
 　- ガントチャートの日付セル：作業ログ入力モードON時はその日付で作業ログ入力、OFF時はその日の作業ログ詳細を表示。
 　- 作業ログシート：既存ログを編集します。
 ・作業時間：作業ログ入力時、作業時間は空欄でも保存できます。
+・予定名の保持：作業ログには登録時点の予定名を保存します。予定が削除または同期対象外になっても、保存済みの名前を表示します。
 
 ■ 設定ファイルによるカスタマイズ
 ・settings.json：画面や予定追加の初期値を管理します。ファイルがない場合は初回読み込み時に自動生成されます。
@@ -436,6 +451,7 @@ function Get-HelpText {
 　- suppressWeekendScheduleHighlightDefault：土日の予定セルのオレンジ色を初期状態で抑制するか。
 　- topmostDefault：ウィンドウを最前面表示で起動するか。
 　- hiddenStatusesDefault：初期状態で非表示にするステータス。例: ["保留", "廃棄"]。
+　- completedScheduleDisplayCount / discardedScheduleDisplayCount：ガントチャートに完了・廃棄予定を直近何件表示するか。画面の表示メニューからも変更できます。
 　- addAppointmentPrivateDefault：予定追加時、「非公開」を初期ONにするか。
 　- addAppointmentShowAsFreeDefault：予定追加時、「空き時間として表示」を初期ONにするか。
 　- addAppointmentTypeDefaultSymbol：予定追加時の期限タイプ初期値。✕ / ◆ / ◇ / ▶ のいずれか。
@@ -532,6 +548,8 @@ function ConvertTo-ScheduleItem {
         開始時間 = $Task.startTime
         終了時間 = $Task.endTime
         メモ = Format-Memo $Task.memo
+        非公開 = if ($null -ne $Task.PSObject.Properties["isPrivate"]) { [bool]$Task.isPrivate } else { $null }
+        空き時間表示 = if ($null -ne $Task.PSObject.Properties["showAsFree"]) { [bool]$Task.showAsFree } else { $null }
     }
 }
 function Format-AppointmentTitle {
@@ -660,7 +678,8 @@ function New-WorkLog {
         [string]$Uid,
         [string]$Date,
         [string]$Content,
-        [string]$Time
+        [string]$Time,
+        [string]$Title = ""
     )
 
     [PSCustomObject]@{
@@ -668,6 +687,7 @@ function New-WorkLog {
         date = $Date
         content = $Content
         time = $Time
+        title = $Title
     }
 }
 
@@ -706,7 +726,6 @@ function Upsert-WorkLog {
 
     return @($Logs + $NewLog)
 }
-
 function Format-WorkLogTime {
     param($WorkTime)
 
@@ -728,7 +747,16 @@ function ConvertTo-DisplayWorkLog {
     )
 
     $taskEntry = $Tasks | Where-Object { $_.uid -eq $Log.uid } | Select-Object -First 1
-    $title = if ($taskEntry) { $taskEntry.タイトル } else { "不明なスケジュール" }
+    $savedTitle = if ($Log.PSObject.Properties["title"]) { [string]$Log.title } else { "" }
+    $title = if ($taskEntry) {
+        $taskEntry.タイトル
+    }
+    elseif (-not [string]::IsNullOrWhiteSpace($savedTitle)) {
+        $savedTitle
+    }
+    else {
+        "削除・同期対象外のスケジュール"
+    }
 
     $Log | Add-Member -MemberType NoteProperty -Name "title" -Value $title -Force
     $Log | Add-Member -MemberType NoteProperty -Name "displayTime" -Value (Format-WorkLogTime -WorkTime ($Log.time)) -Force -PassThru
@@ -978,10 +1006,14 @@ function Get-GanttCellState {
     }
 }
 function Get-RecentClosedTaskUids {
-    param([array]$Tasks)
+    param(
+        [array]$Tasks,
+        [int]$CompletedCount = 5,
+        [int]$DiscardedCount = 5
+    )
 
-    $completedUids = @($Tasks | Where-Object { $_.ステータス -eq "完了" } | Select-Object -Last 15 | ForEach-Object { $_.uid })
-    $discardedUids = @($Tasks | Where-Object { $_.ステータス -eq "廃棄" } | Select-Object -Last 15 | ForEach-Object { $_.uid })
+    $completedUids = @($Tasks | Where-Object { $_.ステータス -eq "完了" } | Sort-Object 終了日, 開始日 | Select-Object -Last $CompletedCount | ForEach-Object { $_.uid })
+    $discardedUids = @($Tasks | Where-Object { $_.ステータス -eq "廃棄" } | Sort-Object 終了日, 開始日 | Select-Object -Last $DiscardedCount | ForEach-Object { $_.uid })
 
     return @($completedUids + $discardedUids)
 }
@@ -1022,10 +1054,12 @@ function Select-GanttVisibleTasks {
     param(
         [array]$Tasks,
         [datetime]$BaseDate = (Get-Date),
-        [array]$HiddenStatuses = @()
+        [array]$HiddenStatuses = @(),
+        [int]$CompletedCount = 5,
+        [int]$DiscardedCount = 5
     )
 
-    $recentClosedTaskUids = Get-RecentClosedTaskUids -Tasks $Tasks
+    $recentClosedTaskUids = Get-RecentClosedTaskUids -Tasks $Tasks -CompletedCount $CompletedCount -DiscardedCount $DiscardedCount
     $unstartedEndLimitText = $BaseDate.AddDays(44).ToString("yyyy/MM/dd")
 
     foreach ($task in $Tasks) {
@@ -1117,13 +1151,15 @@ function ConvertTo-GanttDataView {
         [int]$Days,
         [datetime]$BaseDate = (Get-Date),
         [bool]$SuppressWeekendScheduleHighlight = $false,
-        [array]$HiddenStatuses = @()
+        [array]$HiddenStatuses = @(),
+        [int]$CompletedCount = 5,
+        [int]$DiscardedCount = 5
     )
 
     $todayText = $BaseDate.ToString("yyyy/MM/dd")
     $table = New-GanttDataTable -StartDate $StartDate -Days $Days
 
-    foreach ($task in (Select-GanttVisibleTasks -Tasks $Tasks -BaseDate $BaseDate -HiddenStatuses $HiddenStatuses)) {
+    foreach ($task in (Select-GanttVisibleTasks -Tasks $Tasks -BaseDate $BaseDate -HiddenStatuses $HiddenStatuses -CompletedCount $CompletedCount -DiscardedCount $DiscardedCount)) {
         Add-GanttTaskRow -DataTable $table -Task $task -Logs $Logs -StartDate $StartDate -Days $Days -TodayText $todayText -SuppressWeekendScheduleHighlight $SuppressWeekendScheduleHighlight
     }
 
@@ -1160,6 +1196,8 @@ function ConvertFrom-OutlookAppointment {
         endTime = if ($Item.AllDayEvent) { "" } else { $Item.End.ToString("HH:mm") }
         memo = Format-Memo $Item.Body
         categories = $Item.Categories
+        isPrivate = ($Item.Sensitivity -eq 2)
+        showAsFree = ($Item.BusyStatus -eq 0)
     }
 }
 
@@ -1472,9 +1510,6 @@ function Get-AllData {
                     <MenuItem Name="BtnSync" Header="Outlook同期"/>
                     <Separator/>
                     <MenuItem Name="BtnAddAppt" Header="予定追加"/>
-                    <MenuItem Name="BtnEditAppt" Header="予定編集"/>
-                    <Separator/>
-                    <MenuItem Name="BtnComplete" Header="ステータス切替"/>
                 </MenuItem>
                 <MenuItem Header="表示">
                     <MenuItem Name="BtnResetView" Header="表示リセット"/>
@@ -1484,6 +1519,21 @@ function Get-AllData {
                     <MenuItem Name="ChkHideHold" Header="保留を非表示" IsCheckable="True"/>
                     <MenuItem Name="ChkHideDiscarded" Header="廃棄を非表示" IsCheckable="True"/>
                     <MenuItem Name="ChkHideCompleted" Header="完了を非表示" IsCheckable="True"/>
+                    <Separator/>
+                    <MenuItem Header="完了の表示数">
+                        <MenuItem Name="CompletedCount0" Header="0件" Tag="0" IsCheckable="True"/>
+                        <MenuItem Name="CompletedCount5" Header="5件" Tag="5" IsCheckable="True"/>
+                        <MenuItem Name="CompletedCount10" Header="10件" Tag="10" IsCheckable="True"/>
+                        <MenuItem Name="CompletedCount15" Header="15件" Tag="15" IsCheckable="True"/>
+                        <MenuItem Name="CompletedCount30" Header="30件" Tag="30" IsCheckable="True"/>
+                    </MenuItem>
+                    <MenuItem Header="廃棄の表示数">
+                        <MenuItem Name="DiscardedCount0" Header="0件" Tag="0" IsCheckable="True"/>
+                        <MenuItem Name="DiscardedCount5" Header="5件" Tag="5" IsCheckable="True"/>
+                        <MenuItem Name="DiscardedCount10" Header="10件" Tag="10" IsCheckable="True"/>
+                        <MenuItem Name="DiscardedCount15" Header="15件" Tag="15" IsCheckable="True"/>
+                        <MenuItem Name="DiscardedCount30" Header="30件" Tag="30" IsCheckable="True"/>
+                    </MenuItem>
                     <MenuItem Name="ChkTopmost" Header="最前面" IsCheckable="True"/>
                 </MenuItem>
                 <MenuItem Header="ヘルプ">
@@ -1702,9 +1752,7 @@ function Initialize-MainWindowControls {
     param($Window)
 
     $script:BtnAddAppt = $Window.FindName("BtnAddAppt")
-    $script:BtnEditAppt = $Window.FindName("BtnEditAppt")
     $script:BtnSync = $Window.FindName("BtnSync")
-    $script:BtnComplete = $Window.FindName("BtnComplete")
     $script:GanttDatePicker = $Window.FindName("GanttDatePicker")
     $script:GanttDaysCombo = $Window.FindName("GanttDaysCombo")
     $script:BtnResetView = $Window.FindName("BtnResetView")
@@ -1718,6 +1766,9 @@ function Initialize-MainWindowControls {
     $script:GridSync = $Window.FindName("GridSync")
     $script:GridGantt = $Window.FindName("GridGantt")
     $script:GridLogs = $Window.FindName("GridLogs")
+    $script:MainTab = $Window.FindName("MainTab")
+    $script:CompletedCountItems = @(0, 5, 10, 15, 30 | ForEach-Object { $Window.FindName("CompletedCount$_") })
+    $script:DiscardedCountItems = @(0, 5, 10, 15, 30 | ForEach-Object { $Window.FindName("DiscardedCount$_") })
     $script:StatusMsg = $Window.FindName("StatusMsg")
 }
 
@@ -2185,12 +2236,11 @@ function Invoke-AppointmentForm {
         if (-not [string]::IsNullOrWhiteSpace($ExistingTask.開始時間)) { $timeStart.Text = $ExistingTask.開始時間 }
         if (-not [string]::IsNullOrWhiteSpace($ExistingTask.終了時間)) { $timeEnd.Text = $ExistingTask.終了時間 }
         $txtMemo.Text = [string]$ExistingTask.メモ
-        try {
-            $outlookOptions = Get-OutlookAppointmentOptions -EntryId $ExistingTask.uid
-            $chkPrivate.IsChecked = [bool]$outlookOptions.IsPrivate
-            $chkShowAsFree.IsChecked = [bool]$outlookOptions.ShowAsFree
+        if ($null -ne $ExistingTask.非公開 -and $null -ne $ExistingTask.空き時間表示) {
+            $chkPrivate.IsChecked = [bool]$ExistingTask.非公開
+            $chkShowAsFree.IsChecked = [bool]$ExistingTask.空き時間表示
         }
-        catch {
+        else {
             $chkPrivate.IsChecked = [bool]$settings.addAppointmentPrivateDefault
             $chkShowAsFree.IsChecked = [bool]$settings.addAppointmentShowAsFreeDefault
         }
@@ -2383,7 +2433,7 @@ function Invoke-LogForm {
             [array]$logs = Read-JsonArray -Path $LogsFile
             $saveDate = if ($dpDate.SelectedDate) { $dpDate.SelectedDate.ToString("yyyy/MM/dd") } else { $dpDate.Text }
         
-            $newLog = New-WorkLog -Uid $task.uid -Date $saveDate -Content $txtContent.Text -Time $txtTime.Text
+            $newLog = New-WorkLog -Uid $task.uid -Date $saveDate -Content $txtContent.Text -Time $txtTime.Text -Title $task.タイトル
             $logs = Upsert-WorkLog -Logs $logs -NewLog $newLog -EditLog $editLog
             Write-JsonData -Path $LogsFile -Data $logs
         
@@ -2398,7 +2448,10 @@ function Invoke-LogForm {
 }
 
 function Invoke-StatusSchedulePicker {
-    param([array]$Tasks)
+    param(
+        [array]$Tasks,
+        $InitialTask
+    )
 
     $items = Get-CompletionToggleSchedules -Schedules $Tasks
     if ($items.Count -eq 0) {
@@ -2409,7 +2462,7 @@ function Invoke-StatusSchedulePicker {
     [xml]$xaml = @"
     <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            Title="ステータス切替" Height="220" Width="520"
+            Title="ステータス切替" Height="300" Width="620"
             Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
             TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
         <Grid Margin="14">
@@ -2421,7 +2474,14 @@ function Invoke-StatusSchedulePicker {
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <TextBlock Text="ステータスを変更するスケジュール" FontWeight="SemiBold" Margin="0,0,0,6"/>
-            <ComboBox Name="ComboSchedule" Grid.Row="1" Height="28" DisplayMemberPath="DisplayText"/>
+            <DataGrid Name="ComboSchedule" Grid.Row="1" Height="100" AutoGenerateColumns="False" IsReadOnly="True"
+                      HeadersVisibility="Column" SelectionMode="Single" SelectionUnit="FullRow">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="開始日" Binding="{Binding 開始日}" Width="90"/>
+                    <DataGridTextColumn Header="状態" Binding="{Binding ステータス}" Width="75"/>
+                    <DataGridTextColumn Header="タイトル" Binding="{Binding タイトル}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
             <StackPanel Grid.Row="2" Margin="0,8,0,0">
                 <TextBlock Text="変更後ステータス" Foreground="#666666" Margin="0,0,0,2"/>
                 <ComboBox Name="ComboStatus" Height="28">
@@ -2455,7 +2515,7 @@ function Invoke-StatusSchedulePicker {
             $_
         })
     $combo.ItemsSource = $comboItems
-    $combo.SelectedIndex = 0
+    $combo.SelectedItem = if ($InitialTask) { $comboItems | Where-Object uid -eq $InitialTask.uid | Select-Object -First 1 } else { $comboItems | Select-Object -First 1 }
 
     $selectStatus = {
         if ($combo.SelectedItem) {
@@ -2527,7 +2587,7 @@ function Invoke-ScheduleEditPicker {
     [xml]$xaml = @"
     <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            Title="スケジュール編集" Height="190" Width="520"
+            Title="スケジュール編集" Height="330" Width="620"
             Background="#F5F5F5" Foreground="#333333" FontFamily="$FONT_MAIN" FontSize="$FONT_SIZE_DIALOG"
             TextOptions.TextRenderingMode="ClearType" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
         <Grid Margin="14">
@@ -2538,7 +2598,15 @@ function Invoke-ScheduleEditPicker {
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <TextBlock Text="編集するスケジュール" FontWeight="SemiBold" Margin="0,0,0,6"/>
-            <ComboBox Name="ComboSchedule" Grid.Row="1" Height="28" DisplayMemberPath="DisplayText"/>
+            <DataGrid Name="ComboSchedule" Grid.Row="1" Height="190" AutoGenerateColumns="False" IsReadOnly="True"
+                      HeadersVisibility="Column" SelectionMode="Single" SelectionUnit="FullRow">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="開始日" Binding="{Binding 開始日}" Width="90"/>
+                    <DataGridTextColumn Header="分類" Binding="{Binding 分類}" Width="90"/>
+                    <DataGridTextColumn Header="タイトル" Binding="{Binding タイトル}" Width="*"/>
+                    <DataGridTextColumn Header="状態" Binding="{Binding ステータス}" Width="75"/>
+                </DataGrid.Columns>
+            </DataGrid>
             <TextBlock Name="TxtMemo" Grid.Row="2" TextWrapping="Wrap" Foreground="#666666" Margin="0,8,0,0"/>
             <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                 <Button Name="BtnCancel" Content="キャンセル" Width="90" Height="28" Margin="0,0,8,0"/>
@@ -2557,12 +2625,12 @@ function Invoke-ScheduleEditPicker {
     $btnOk = $window.FindName("BtnOk")
     $btnCancel = $window.FindName("BtnCancel")
 
-    $comboItems = @($items | ForEach-Object {
+    $comboItems = @($items | Sort-Object 開始日, タイトル | ForEach-Object {
             $_ | Add-Member -MemberType NoteProperty -Name DisplayText -Value "$($_.開始日) $($_.タイトル)" -Force
             $_
         })
     $combo.ItemsSource = $comboItems
-    $combo.SelectedIndex = 0
+    $combo.SelectedItem = $comboItems | Select-Object -First 1
 
     $combo.Add_SelectionChanged({
             if ($combo.SelectedItem) {
@@ -2684,7 +2752,7 @@ function Refresh-UI {
     $suppressWeekendScheduleHighlight = ($ChkSuppressWeekendHighlight -and $ChkSuppressWeekendHighlight.IsChecked)
 
     Build-GanttColumns -startDate $startDate -days $days
-    $GridGantt.ItemsSource = ConvertTo-GanttDataView -Tasks $data.parsed -Logs $data.logs -StartDate $startDate -Days $days -SuppressWeekendScheduleHighlight $suppressWeekendScheduleHighlight -HiddenStatuses $hiddenStatuses
+    $GridGantt.ItemsSource = ConvertTo-GanttDataView -Tasks $data.parsed -Logs $data.logs -StartDate $startDate -Days $days -SuppressWeekendScheduleHighlight $suppressWeekendScheduleHighlight -HiddenStatuses $hiddenStatuses -CompletedCount ([int]$AppSettings.completedScheduleDisplayCount) -DiscardedCount ([int]$AppSettings.discardedScheduleDisplayCount)
 }
 function Invoke-OutlookSync {
     param(
@@ -2792,8 +2860,91 @@ function Get-DisplayedGanttTasks {
     return $tasks
 }
 
+function Get-SelectedSchedule {
+    if ($MainTab.SelectedIndex -eq 0 -and $GridSync.CurrentItem) {
+        return $GridSync.CurrentItem
+    }
+    if ($MainTab.SelectedIndex -eq 2 -and $GridGantt.SelectedItem) {
+        return $GridGantt.SelectedItem["OriginalTask"]
+    }
+    return $null
+}
+
+function Select-DataGridRowUnderMouse {
+    param(
+        $Grid,
+        $OriginalSource
+    )
+
+    $element = $OriginalSource
+    while ($element -and $element -isnot [System.Windows.Controls.DataGridCell]) {
+        $element = [System.Windows.Media.VisualTreeHelper]::GetParent($element)
+    }
+
+    if ($element -is [System.Windows.Controls.DataGridCell]) {
+        $Grid.CurrentCell = New-Object System.Windows.Controls.DataGridCellInfo($element)
+        $element.Focus()
+        return $true
+    }
+
+    return $false
+}
+
+function Initialize-ScheduleContextMenu {
+    $contextMenu = New-Object System.Windows.Controls.ContextMenu
+    $editItem = New-Object System.Windows.Controls.MenuItem
+    $editItem.Header = "予定編集"
+    $statusItem = New-Object System.Windows.Controls.MenuItem
+    $statusItem.Header = "ステータス切替"
+
+    $editItem.Add_Click({
+        try {
+            Edit-SelectedSchedule
+        }
+        catch {
+            Show-Toast "編集処理に失敗: $($_.Exception.Message)"
+        }
+    })
+    foreach ($status in @("未着手", "完了", "保留", "廃棄")) {
+        $statusChoice = New-Object System.Windows.Controls.MenuItem
+        $statusChoice.Header = $status
+        $statusChoice.Tag = $status
+        $statusChoice.Add_Click({
+            try {
+                Set-SelectedScheduleStatus -Status ([string]$this.Tag)
+            }
+            catch {
+                Show-Toast "ステータス切替に失敗: $($_.Exception.Message)"
+            }
+        })
+        [void]$statusItem.Items.Add($statusChoice)
+    }
+
+    [void]$contextMenu.Items.Add($editItem)
+    [void]$contextMenu.Items.Add($statusItem)
+    $GridSync.ContextMenu = $contextMenu
+}
+
+function Set-SelectedScheduleStatus {
+    param([string]$Status)
+
+    $task = Get-SelectedSchedule
+    if (-not $task) {
+        Show-Toast "スケジュールを選択してください"
+        return
+    }
+
+    Set-OutlookAppointmentStatus -EntryId $task.uid -Status $Status
+    $schedules = Read-JsonArray -Path $TasksFile
+    $schedules = Set-CachedScheduleStatus -Schedules $schedules -Uid $task.uid -Status $Status
+    Write-JsonData -Path $TasksFile -Data $schedules
+    Show-Toast "ステータスを変更しました: $($task.タイトル) => $Status"
+    Invoke-OutlookSync -SuccessPrefix "ステータス切替後の同期完了"
+}
+
 function Change-SelectedScheduleStatus {
-    $result = Invoke-StatusSchedulePicker -Tasks (Get-DisplayedGanttTasks)
+    $selectedTask = Get-SelectedSchedule
+    $result = Invoke-StatusSchedulePicker -Tasks (Get-DisplayedGanttTasks) -InitialTask $selectedTask
     if (-not $result) {
         return
     }
@@ -2813,12 +2964,57 @@ function Complete-SelectedSchedule {
 }
 
 function Edit-SelectedSchedule {
-    $task = Invoke-ScheduleEditPicker -Tasks (Get-DisplayedGanttTasks)
+    $task = Get-SelectedSchedule
+    if (-not $task) {
+        $task = Invoke-ScheduleEditPicker -Tasks (Get-DisplayedGanttTasks)
+    }
     if (-not $task) {
         return
     }
 
     Invoke-EditAppointmentForm -Task $task
+}
+
+function Set-ClosedScheduleDisplayCount {
+    param(
+        [ValidateSet("完了", "廃棄")][string]$Status,
+        [int]$Count
+    )
+
+    $property = if ($Status -eq "完了") { "completedScheduleDisplayCount" } else { "discardedScheduleDisplayCount" }
+    Set-AppSetting -Name $property -Value $Count
+    Update-ClosedScheduleCountChecks
+    Refresh-UI
+}
+
+function Update-ClosedScheduleCountChecks {
+    foreach ($item in $CompletedCountItems) {
+        $item.IsChecked = ([int]$item.Tag -eq [int]$AppSettings.completedScheduleDisplayCount)
+    }
+    foreach ($item in $DiscardedCountItems) {
+        $item.IsChecked = ([int]$item.Tag -eq [int]$AppSettings.discardedScheduleDisplayCount)
+    }
+}
+
+function Initialize-AllTabLayouts {
+    if (-not $MainTab -or $MainTab.Items.Count -le 1) {
+        return
+    }
+
+    $selectedIndex = $MainTab.SelectedIndex
+    $MainTab.Visibility = [System.Windows.Visibility]::Hidden
+
+    try {
+        for ($i = 0; $i -lt $MainTab.Items.Count; $i++) {
+            $MainTab.SelectedIndex = $i
+            $MainTab.UpdateLayout()
+        }
+    }
+    finally {
+        $MainTab.SelectedIndex = $selectedIndex
+        $MainTab.UpdateLayout()
+        $MainTab.Visibility = [System.Windows.Visibility]::Visible
+    }
 }
 # --- Events ---
 $BtnSync.Add_Click({
@@ -2838,23 +3034,13 @@ $ChkHideCompleted.Add_Unchecked({ Refresh-UI })
 $ChkTopmost.Add_Checked({ $Form.Topmost = $true })
 $ChkTopmost.Add_Unchecked({ $Form.Topmost = $false })
 
-$BtnComplete.Add_Click({
-        try {
-            Change-SelectedScheduleStatus
-        }
-        catch {
-            Show-Toast "ステータス切替に失敗: $($_.Exception.Message)"
-        }
-    })
-
-$BtnEditAppt.Add_Click({
-        try {
-            Edit-SelectedSchedule
-        }
-        catch {
-            Show-Toast "編集処理に失敗: $($_.Exception.Message)"
-        }
-    })
+foreach ($item in $CompletedCountItems) {
+    $item.Add_Click({ Set-ClosedScheduleDisplayCount -Status "完了" -Count ([int]$this.Tag) })
+}
+foreach ($item in $DiscardedCountItems) {
+    $item.Add_Click({ Set-ClosedScheduleDisplayCount -Status "廃棄" -Count ([int]$this.Tag) })
+}
+Update-ClosedScheduleCountChecks
 
 $BtnHelp.Add_Click({
         Invoke-ViewForm -title "留意事項・ヘルプ" -text (Get-HelpText)
@@ -2872,11 +3058,20 @@ $GridLogs.Add_MouseDoubleClick({
         Handle-LogsGridDoubleClick
     })
 
+$GridSync.Add_PreviewMouseRightButtonDown({
+    param($sender, $eventArgs)
+    [void](Select-DataGridRowUnderMouse -Grid $GridSync -OriginalSource $eventArgs.OriginalSource)
+})
+Initialize-ScheduleContextMenu
+
 $Form.Add_Closing({
         Save-WindowPlacement -Window $Form -Settings $AppSettings
     })
 
 # INITIAL LOAD
 Refresh-UI
+$Form.Add_ContentRendered({
+    Initialize-AllTabLayouts
+})
 $Form.ShowDialog()
 
