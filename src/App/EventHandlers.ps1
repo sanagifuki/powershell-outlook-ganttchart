@@ -239,3 +239,24 @@ function Update-ClosedScheduleCountChecks {
         $item.IsChecked = ([int]$item.Tag -eq [int]$AppSettings.discardedScheduleDisplayCount)
     }
 }
+
+function Initialize-AllTabLayouts {
+    if (-not $MainTab -or $MainTab.Items.Count -le 1) {
+        return
+    }
+
+    $selectedIndex = $MainTab.SelectedIndex
+    $MainTab.Visibility = [System.Windows.Visibility]::Hidden
+
+    try {
+        for ($i = 0; $i -lt $MainTab.Items.Count; $i++) {
+            $MainTab.SelectedIndex = $i
+            $MainTab.UpdateLayout()
+        }
+    }
+    finally {
+        $MainTab.SelectedIndex = $selectedIndex
+        $MainTab.UpdateLayout()
+        $MainTab.Visibility = [System.Windows.Visibility]::Visible
+    }
+}

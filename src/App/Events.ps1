@@ -52,5 +52,8 @@ $Form.Add_Closing({
 
 # INITIAL LOAD
 Refresh-UI
+$Form.Add_ContentRendered({
+    Initialize-AllTabLayouts
+})
 $Form.ShowDialog()
 
