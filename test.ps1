@@ -177,6 +177,10 @@ $logs = @([PSCustomObject]@{
 $cell = Get-GanttCellState -Task $task -DateText '2026/05/16' -TodayText '2026/05/16' -TaskLogs $logs -LastWorkDate '2026/05/16'
 Assert-Equal $cell.Symbol '▶' 'Gantt cell symbol failed.'
 Assert-True ($cell.ToolTip -match '15分') 'Gantt cell tooltip failed.'
+$completedTask = $task.PSObject.Copy()
+$completedTask.ステータス = '完了'
+$completedCell = Get-GanttCellState -Task $completedTask -DateText '2026/05/16' -TodayText '2026/05/16' -TaskLogs $logs -LastWorkDate '2026/05/16'
+Assert-Equal $completedCell.Background $CLR_ROW_COMPLETED 'Completed symbol cell background failed.'
 
 $view = ConvertTo-GanttDataView -Tasks @($task) -Logs $logs -StartDate ([datetime]'2026-05-16') -Days 2 -BaseDate ([datetime]'2026-05-16')
 Assert-Equal $view.Count 1 'Gantt view row count failed.'

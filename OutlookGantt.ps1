@@ -1,6 +1,6 @@
 ﻿# Auto-generated from src/*.ps1 by build.ps1.
 # Edit files under src/ instead of this generated file.
-# Source commit: 60e0f35
+# Source commit: 38d164a
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Drawing
@@ -958,7 +958,7 @@ function Get-GanttCellBackground {
 
     if ($Symbol -ne "") {
         if ($Task.ステータス -eq "完了") {
-            $background = "Transparent"
+            $background = $CLR_ROW_COMPLETED
         }
         elseif ($Symbol -match "✕") {
             $background = "#EA4335"
@@ -1899,6 +1899,9 @@ function New-GanttDateCellStyle {
         </DataTrigger>
         <DataTrigger Binding="{Binding [${DateText}_Bg]}" Value="$CLR_GANTT_PAST_BG">
             <Setter Property="Background" Value="$CLR_GANTT_PAST_BG"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding [${DateText}_Bg]}" Value="$CLR_ROW_COMPLETED">
+            <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
         </DataTrigger>
         
         <!-- 記号の背景色 -->

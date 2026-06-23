@@ -81,6 +81,9 @@ function New-GanttDateCellStyle {
         <DataTrigger Binding="{Binding [${DateText}_Bg]}" Value="$CLR_GANTT_PAST_BG">
             <Setter Property="Background" Value="$CLR_GANTT_PAST_BG"/>
         </DataTrigger>
+        <DataTrigger Binding="{Binding [${DateText}_Bg]}" Value="$CLR_ROW_COMPLETED">
+            <Setter Property="Background" Value="$CLR_ROW_COMPLETED"/>
+        </DataTrigger>
         
         <!-- 記号の背景色 -->
         <DataTrigger Binding="{Binding [${DateText}_Bg]}" Value="#FF9900">

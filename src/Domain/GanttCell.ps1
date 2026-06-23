@@ -136,7 +136,7 @@ function Get-GanttCellBackground {
 
     if ($Symbol -ne "") {
         if ($Task.ステータス -eq "完了") {
-            $background = "Transparent"
+            $background = $CLR_ROW_COMPLETED
         }
         elseif ($Symbol -match "✕") {
             $background = "#EA4335"
